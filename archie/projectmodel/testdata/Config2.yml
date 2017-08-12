@@ -1,0 +1,15 @@
+source_paths: [Source, TestSource]
+base_include_folder: include
+
+default_tier: 5
+modules:
+  - pattern: '**/Entities'
+    tier: 1
+  - pattern: '**/BusinessRules'
+    tier: 2
+  - pattern: '**/Interfaces'
+    tier: 3
+  - pattern: '**/Plugins'
+    tier: 4
+  - pattern: '**/private'
+    tier: private    

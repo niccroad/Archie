@@ -1,0 +1,13 @@
+source_paths: [source]
+base_include_folder: build/include
+
+default_tier: 4
+modules:
+  - pattern: '**/entities'
+    tier: 1
+  - pattern: '**/repository'
+    tier: 4
+  - pattern: '**/businessrules'
+    tier: 3
+  - pattern: '**/repository/I[A-Z]*.h(pp)?'
+    tier: 2

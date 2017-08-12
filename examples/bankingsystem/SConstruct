@@ -1,0 +1,24 @@
+import os, sys
+sys.path.insert(0, os.path.abspath('../..'))
+
+import archie
+archie = archie.Archie('.archie-config', base_include_path = None)
+archie.installHeaderFiles()
+
+env = Environment()
+
+entity_objects = env.Object(target = 'build/Objects/Account',
+                            source = ['source/entities/Account.cpp'],
+                            CPPPATH = archie.getIncludePath('source/entities'))
+
+action_objects = env.Object(target = 'build/Objects/AccountActions',
+                            source = ['source/actions/AccountActions.cpp'],
+                            CPPPATH = archie.getIncludePath('source/actions'))
+
+main_objects = env.Object(target = 'build/objects/Main',
+                          source = ['source/Main.cpp'],
+                          CPPPATH = archie.getIncludePath('source'))
+
+env.Program(target = 'BankingSystem',
+            source = [main_objects, action_objects, entity_objects],
+            LIBS = [])

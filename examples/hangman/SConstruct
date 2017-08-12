@@ -1,0 +1,20 @@
+import os, sys
+sys.path.insert(0, os.path.abspath('../..'))
+
+import archie
+archie = archie.Archie('.archie-config', base_include_path = None)
+archie.installHeaderFiles()
+
+env = Environment()
+
+game_lib = env.StaticLibrary(target = 'build/Libraries/Game',
+                             source = ['source/entities/HangmanGame.cpp', 'source/entities/WordList_p.cpp'],
+                             CPPPATH = archie.getIncludePath('source/entities'))
+                                                           
+main_objects = env.Object(target = 'build/objects/Main',
+                          source = ['source/Main.cpp'],
+                          CPPPATH = archie.getIncludePath('source'))
+
+env.Program(target = 'Hangman',
+            source = [main_objects, game_lib],
+            LIBS = [])

@@ -1,0 +1,28 @@
+import os, sys
+sys.path.insert(0, os.path.abspath('../..'))
+
+import archie
+archie = archie.Archie('.archie-config', base_include_path = None)
+archie.installHeaderFiles()
+
+env = Environment()
+
+entity_lib = env.StaticLibrary(target = 'build/Libraries/Entities',
+                               source = ['source/entities/Book.cpp', 'source/entities/Student.cpp'],
+                               CPPPATH = archie.getIncludePath('source/entities'))
+                               
+businessrules_lib = env.StaticLibrary(target = 'build/Libraries/BusinessRules',
+                                      source = ['source/businessrules/LibraryActions.cpp'],
+                                      CPPPATH = archie.getIncludePath('source/businessrules'))
+                               
+repository_lib = env.StaticLibrary(target = 'build/Libraries/Repository',
+                                   source = ['source/repository/BookRepository.cpp'],
+                                   CPPPATH = archie.getIncludePath('source/repository'))
+                            
+main_objects = env.Object(target = 'build/objects/Main',
+                          source = ['source/Main.cpp'],
+                          CPPPATH = archie.getIncludePath('source'))
+
+env.Program(target = 'LibraryManagement',
+            source = [main_objects, entity_lib, businessrules_lib, repository_lib],
+            LIBS = [])

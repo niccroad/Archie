@@ -1,0 +1,9 @@
+source_paths: [source]
+base_include_folder: build/include
+
+default_tier: 2
+modules:
+  - pattern: '**/entities'
+    tier: 1
+  - pattern: '**/*_p.h(pp)?'
+    tier: 0
