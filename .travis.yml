@@ -1,8 +1,11 @@
 language: python
 python:
- - "2.7"
-before_install: cd $TRAVIS_BUILD_DIR
-script: py.test -v
+  - "2.7"
+install:
+  - pip install codecov
+script: coverage run tests.py
+after_success:
+  - codecov
 branches:
   only:
     - master
