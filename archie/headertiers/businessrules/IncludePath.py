@@ -21,7 +21,8 @@ class IncludePath(object):
         tier = self.project_layout.tierForModule(folder_path)
         logger.debug('Folder path %s has tier %d', folder_path, tier)
         for t in range(1, tier + 1):
-            logger.debug('Tier %d folder %s is included', t, source_folder)
-            paths.append(self.project_layout.getIncludeFolder(t))
+            tier_folder =self.project_layout.getIncludeFolder(t)
+            logger.debug('Tier %d folder %s is included', t, tier_folder)
+            paths.append(tier_folder)
             
         return paths
