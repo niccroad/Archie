@@ -1,0 +1,16 @@
+# Compiled python objects
+*.pyc
+# C/C++ artifact files
+*.obj
+*.o
+*.exe
+*.lib
+*.a
+# SConstruct data files
+.sconsign.dblite
+# Backup files
+*~
+# Build directories
+**/build
+# Data files
+*.dat
