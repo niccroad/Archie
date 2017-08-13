@@ -2,7 +2,7 @@ language: python
 python:
   - 2.7
 install:
-  - pip install pytest pytest-cov
+  - pip install pyyaml pytest pytest-cov
 script: python -m unittest discover -s archie -p "Test*.py"
 branches:
   only:
