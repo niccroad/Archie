@@ -3,7 +3,7 @@ python:
   - "2.7"
 install:
   - pip install codecov
-script: coverage run tests.py
+script: coverage run test.py
 after_success:
   - codecov
 branches:
