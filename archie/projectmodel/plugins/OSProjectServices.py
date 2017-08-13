@@ -14,9 +14,9 @@ class OSProjectServices(ProjectServices):
             self._makeLink(source_file, dest_folder, filename)
                 
     def _makeLink(self, source_file, dest_folder, filename):
-        if 'os.link' in globals():
+        try:
             os.link(source_file, os.path.join(dest_folder, filename))
-        else:
+        except AttributeError:
             subprocess.call('MKLINK /H %s %s' % (filename, os.path.abspath(source_file)),
                             shell = True,
                             stdout = self.devnull,
