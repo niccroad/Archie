@@ -48,9 +48,9 @@ with the command,
 
 ```sh
 # Reorganises headers into their build folders.
-python archie/Archie.py --install_headers
+python -m archie --install_headers
 
 # Prints the include path, including the flags, for a source folder.
-python archie/Archie.py --show_include_path source/entities
+python -m archie --show_include_path source/entities
 # -Ibuild\include\T1
 ```
