@@ -3,6 +3,9 @@ import os, subprocess
 from archie.projectmodel.entities.ProjectServices import ProjectServices
 
 class OSProjectServices(ProjectServices):
+    def __init__(self):
+        self.devnull = open(os.devnull, 'w')
+    
     def createLinkedFile(self, source_file, dest_folder):
         if dest_folder.endswith('/'):
             dest_folder = dest_folder[:-1]
@@ -15,8 +18,9 @@ class OSProjectServices(ProjectServices):
             os.link(source_file, os.path.join(dest_folder, filename))
         else:
             subprocess.call('MKLINK /H %s %s' % (filename, os.path.abspath(source_file)),
-            	            shell = True,
-            	            cwd = dest_folder)
+                            shell = True,
+                            stdout = self.devnull,
+                            cwd = dest_folder)
             
     def removeFile(self, file_path):
         os.unlink(file_path)
@@ -27,14 +31,14 @@ class OSProjectServices(ProjectServices):
     def statFile(self, file_path):
         file_stat = os.stat(file_path)
         if file_stat != None:
-        	return file_stat.st_mtime
+            return file_stat.st_mtime
         return None;
         
     def folderExists(self, folder_path):
-    	return os.path.isdir(folder_path)
+        return os.path.isdir(folder_path)
     
     def createFolder(self, folder_path):
-    	os.makedirs(folder_path)
+        os.makedirs(folder_path)
     
     def listFiles(self, folder):
         if folder.endswith('/'):
