@@ -3,7 +3,7 @@ python:
   - "2.7"
 install:
   - pip install pytest pytest-cov
-script: python -m unittest discover archie
+script: python -m unittest discover ./archie
 branches:
   only:
     - master
