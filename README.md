@@ -1,4 +1,4 @@
-# Archie
+# Archie [![Build Status](https://travis-ci.org/niccroad/Archie.svg?branch=master)](https://travis-ci.org/niccroad/Archie)
 Enforce and maintain the architecture of C/C++ source code.
 
 Archie uses the C/C++ preprocessor #include mechanism to enforce a specified project architecture at compile time. In order to 
