@@ -119,3 +119,19 @@ class TestProjectLayout(unittest.TestCase):
     	project = ProjectLayout()
     	project.addTierForModulesLike('Source/*/BusinessLogic', 2)    	
         self.assertEqual(1, project.tierForModule('Source/Module1/Entities'))
+
+    def test_a_module_is_by_default_not_third_party(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('Source/*/BusinessLogic', 2)    	
+        self.assertFalse(project.isThirdPartyModule('Source/Module1/Entities'))
+        
+    def test_a_module_is_able_to_be_configured_not_third_party(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('Source/*/Entities', 2, False)    	
+        self.assertFalse(project.isThirdPartyModule('Source/Module1/Entities'))
+        
+    def test_a_module_is_able_to_be_configured_third_party(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('*/CodeLib', 2, True)    	
+        self.assertTrue(project.isThirdPartyModule('code/CodeLib'))
+

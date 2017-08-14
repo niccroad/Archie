@@ -1,5 +1,13 @@
 import re
 
+class TierPattern(object):
+	def __init__(self, matcher, is_third_party = False):
+		self.is_third_party = is_third_party
+		self.matcher = matcher
+	
+	def match(self, folder_name):
+		return self.matcher.match(folder_name)
+
 class ProjectLayout(object):
     def __init__(self):
         self.source_paths = []
@@ -48,13 +56,14 @@ class ProjectLayout(object):
                 return True
         return False
         
-    def addTierForModulesLike(self, pattern, tier):
+    def addTierForModulesLike(self, pattern, tier, is_third_party = False):
         if tier < 0:
             tier = 0
         while (len(self.tier_patterns) <= tier):
             self.tier_patterns.append([])
         matcher = self._convertWildcardsToMatcher(pattern)
-        self.tier_patterns[tier].append(matcher)
+        tier_pattern = TierPattern(matcher, is_third_party)
+        self.tier_patterns[tier].append(tier_pattern)
         
     def _convertWildcardsToMatcher(self, pattern):
     	replace_dict = {'.':'\.',
@@ -81,3 +90,12 @@ class ProjectLayout(object):
         if default_tier == None:
         	default_tier = self.default_tier
         return default_tier
+        
+    def isThirdPartyModule(self, folder_name):
+        for t in range(len(self.tier_patterns)):
+            patterns = self.tier_patterns[t]
+            for pattern in patterns:
+                m = pattern.match(folder_name)
+                if m != None:
+                    return pattern.is_third_party
+    	return False
