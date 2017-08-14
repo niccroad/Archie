@@ -25,6 +25,54 @@ modules:
     tier: 0
 ```
 
+### Source Layout
+
+When using Archie, source code should be layed out into a collection of folders first grouping code together by the
+feature it relates to. A second grouping should then be applied with common folder names separating translation units
+by the tier they belong to. This groups related code together, but at build time maintains a clear relationship between
+translation units and what dependencies they can use.
+
+```
+  - source
+      - firstfeature            # (Tier 3)
+          - entities            # (Tier 1)
+          - behaviours          # (Tier 2)
+          - db                  # (Tier 4)
+          - ui                  # (Tier 4)
+      - secondfeature           # (Tier 3)
+          - entities            # (Tier 1)
+          - behaviours          # (Tier 2)
+          - ui                  # (Tier 4)
+```
+
+During the header reorganization step the headers in the source code are hard-linked to an alternative build structure
+which might look like the following for this example.
+
+```
+  - build
+      - include
+          - T1                    # (from both entities folders)
+          - T2                    # (from both behaviours folders)
+          - T3                    # (from both feature folders)
+          - T4                    # (from db and ui folders)
+```
+
+### Source Code
+
+In the source code you simply refer to your includes as if all headers are available in a single shared folder. At 
+compile time only those includes of the same or a lower tier will be available on the include path, which prevents
+circular dependencies from being introduced across more than one layer.
+
+```cpp
+#include "Tier2Class.h"
+// In a Tier 2 cpp file you can #include headers from a lower tier.
+#include "SomeClassAtTier1.h"
+// The following #include however would result in an un-resolved include.
+// #include "SomeClassAtTier4.h"
+
+Tier2Class::Tier2Class() { }
+```
+
 ### SCons Integration
 
 Archie is written in python and is 2.7 compatible so integration with scons is relatively easy. Several small examples are included 
