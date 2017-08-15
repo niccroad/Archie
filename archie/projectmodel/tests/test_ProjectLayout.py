@@ -165,3 +165,26 @@ class TestProjectLayout(unittest.TestCase):
     	project.addTierForModulesLike('*/CodeLib', 2, 'code/CodeLib')    	
         self.assertEqual('code/CodeLib', project.thirdPartyIncludePath('code/CodeLib'))
 
+    def test_the_minimum_reachable_tier_is_normally_one(self):
+    	project = ProjectLayout()
+    	self.assertEqual(1, project.getMinimumReachableTier(5))
+    	
+    def test_the_minimum_reachable_tier_is_able_to_be_limited(self):
+    	project = ProjectLayout()
+    	project.setTierStepLimit(2)
+    	self.assertEqual(3, project.getMinimumReachableTier(5))
+    	
+    def test_the_minimum_reachable_tier_is_never_less_than_one(self):
+    	project = ProjectLayout()
+    	project.setTierStepLimit(9)
+    	self.assertEqual(1, project.getMinimumReachableTier(5))
+    	
+    def test_setting_a_negative_tier_step_limit_is_truncated_to_no_limit(self):
+    	project = ProjectLayout()
+    	project.setTierStepLimit(-1)
+    	self.assertEqual(1, project.getMinimumReachableTier(5))
+
+    def test_setting_a_zero_tier_step_limit_is_truncated_to_no_limit(self):
+    	project = ProjectLayout()
+    	project.setTierStepLimit(0)
+    	self.assertEqual(1, project.getMinimumReachableTier(5))

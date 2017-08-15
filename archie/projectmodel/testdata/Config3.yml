@@ -2,6 +2,7 @@ source_paths: [Source, TestSource]
 base_include_folder: include
 
 default_tier: 5
+tier_reach_limit: 2
 modules:
   - pattern: '**/Entities'
     tier: 1

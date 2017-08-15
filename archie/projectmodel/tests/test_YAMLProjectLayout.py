@@ -56,3 +56,8 @@ class TestYAMLProjectLayout(unittest.TestCase):
     	config.loadConfig('archie/projectmodel/testdata/Config3.yml')
     	self.assertEquals(['thirdparty/QtCore'], config.getThirdPartyIncludeFolders(1))
     	self.assertEquals(['thirdparty/QtSql', 'thirdparty/QtOpenGL'], config.getThirdPartyIncludeFolders(4))
+    	
+    def test_a_yaml_project_layout_with_a_tier_reach_limit_configured(self):
+    	config = YAMLProjectLayout()
+    	config.loadConfig('archie/projectmodel/testdata/Config3.yml')
+    	self.assertEquals(4, config.getMinimumReachableTier(6))

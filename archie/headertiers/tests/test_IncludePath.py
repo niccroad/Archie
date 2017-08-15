@@ -99,3 +99,39 @@ class TestHeaderReorganization(unittest.TestCase):
         
         path_resolver = IncludePath(layout, services)
         self.assertEqual(['CoreLib', 'RenderLib', 'DBLib', 'build/include/T1', 'build/include/T2', 'build/include/T3'], path_resolver.resolveIncludePaths('Source/Module1'))
+        
+    def test_resolve_include_path_for_a_higher_tier_module_with_reach_limit(self):
+        layout = ProjectLayout()
+        layout.addSourceFolder('Source')
+        layout.setTierStepLimit(1)
+        layout.addTierForModulesLike('**/Module2', 3)
+        
+        services = StubProjectServices()
+        services.files_lists['Source'] = []
+        services.files_lists['Source/Module2'] = ['Source/Module2/File1.cpp', 'Source/Module2/File1.h', 'Source/Module2/File2.h']
+        services.folders_lists['Source'] = ['Source/Module2']
+        services.folders_lists['Source/Module2'] = []
+        
+        path_resolver = IncludePath(layout, services)
+        self.assertEqual(['build/include/T2', 'build/include/T3'], path_resolver.resolveIncludePaths('Source/Module2'))
+
+    def test_resolve_include_path_for_module_with_lower_tier_third_party_headers_and_a_reach_limit(self):
+        layout = ProjectLayout()
+        layout.addSourceFolder('Source')
+        layout.setTierStepLimit(1)
+        layout.addTierForModulesLike('**/Module1', 3)
+        layout.addTierForModulesLike('CoreLib', 1, 'CoreLib')
+        layout.addTierForModulesLike('RenderLib', 2, 'RenderLib')
+        layout.addTierForModulesLike('DBLib', 3, 'DBLib')
+        
+        services = StubProjectServices()
+        services.files_lists['Source'] = []
+        services.files_lists['Source/Module1'] = ['Source/Module1/File1.cpp', 'Source/Module1/File1.h', 'Source/Module1/File2.h']
+        services.files_lists['Source/Module1/private'] = ['Source/Module1/private/File1.cpp', 'Source/Module1/private/File1.h', 'Source/Module1/private/File2.h']
+        services.folders_lists['Source'] = ['Source/Module1']
+        services.folders_lists['Source/Module1'] = ['Source/Module1/private']
+        services.folders_lists['Source/Module1/private'] = []
+        
+        path_resolver = IncludePath(layout, services)
+        self.assertEqual(['RenderLib', 'DBLib', 'build/include/T2', 'build/include/T3'], path_resolver.resolveIncludePaths('Source/Module1'))
+        

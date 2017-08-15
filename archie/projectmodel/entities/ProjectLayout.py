@@ -19,6 +19,7 @@ class ProjectLayout(object):
         self.header_matchers.append(re.compile('[\w\s]+\.h$'))
         self.header_matchers.append(re.compile('[\w\s]+\.hpp$'))
         self.default_tier = 1
+        self.tier_step_limit = None
         
     def getSourceFolders(self):
         return self.source_paths
@@ -28,6 +29,17 @@ class ProjectLayout(object):
         
     def setBaseIncludeFolder(self, include_base_path):
         self.include_base_path = include_base_path
+
+    def setTierStepLimit(self, step_limit):
+    	if step_limit <= 0:
+    		step_limit = None
+    	self.tier_step_limit = step_limit
+    	
+    def getMinimumReachableTier(self, from_tier):
+    	if self.tier_step_limit == None:
+    		return 1
+    	else:
+    		return max(1, from_tier - self.tier_step_limit)
         
     def getIncludeFolder(self, tier):
         self._fillTierFolders(tier)

@@ -11,6 +11,10 @@ class YAMLProjectLayout(ProjectLayout):
         self.setBaseIncludeFolder(config.get('base_include_folder', self.include_base_path))
         
         self.default_tier = config.get('default_tier', self.default_tier)
+        
+        self.tier_step_limit = config.get('tier_reach_limit', None)
+        self.setTierStepLimit(self.tier_step_limit)
+        
         for module in config.get('modules', []):
             tier = module.get('tier', 1)
             if 'private' == tier:

@@ -13,11 +13,12 @@ class IncludePath(object):
         logger.debug('List include folders for path %s', folder_path)       
 
         tier = self.project_layout.tierForModule(folder_path)
-        logger.debug('Folder path %s has tier %d', folder_path, tier)
+        min_tier = self.project_layout.getMinimumReachableTier(tier)
+        logger.debug('Folder path %s has tier range %d to %d', folder_path, min_tier, tier)
 
         paths = []
         if include_third_party:
-            for t in range(1, tier + 1):
+            for t in range(min_tier, tier + 1):
                 third_party_paths = self.project_layout.getThirdPartyIncludeFolders(t)
                 for third_party_folder in third_party_paths:
             	    logger.debug('Tier %d third party folder %s is included', t, third_party_folder)
@@ -31,8 +32,8 @@ class IncludePath(object):
                     logger.debug('Private module %s is included', source_folder)
                     paths.append(source_folder)
         
-            for t in range(1, tier + 1):
-                tier_folder =self.project_layout.getIncludeFolder(t)
+            for t in range(min_tier, tier + 1):
+                tier_folder = self.project_layout.getIncludeFolder(t)
                 logger.debug('Tier %d folder %s is included', t, tier_folder)
                 paths.append(tier_folder)
             
