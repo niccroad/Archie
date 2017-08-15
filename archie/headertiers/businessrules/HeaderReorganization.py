@@ -12,6 +12,7 @@ class HeaderReorganization(object):
         expected_installed_files = dict()
         build_folder_stack = []
         max_tier = 0
+        has_prescient_module = self.project_layout.hasPrescientModule()
         build_folder_stack.append(self.project_layout.getSourceFolders())
         while len(build_folder_stack) > 0:
             source_folder_list = build_folder_stack.pop()
@@ -25,7 +26,7 @@ class HeaderReorganization(object):
                     source_file = source_folder + '/' + file_name
                     if self.project_layout.isIncludeFile(source_file):
                         file_tier = self.project_layout.tierForModule(source_file, tier)                        
-                        if file_tier == 0:
+                        if file_tier == 0 and not has_prescient_module:
                             logger.debug('Include file %s is private', source_file)
                             continue
                         logger.debug('Include file %s has tier %d', source_file, file_tier)

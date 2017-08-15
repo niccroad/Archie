@@ -14,6 +14,9 @@ modules:
     tier: 4
   - pattern: '**/private'
     tier: -1
+  - pattern: '**/TestCases'
+    tier: 5
+    prescient: true
 
 third_party_modules:
   - include_path: 'thirdparty/QtCore'

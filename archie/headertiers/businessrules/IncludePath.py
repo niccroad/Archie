@@ -31,7 +31,13 @@ class IncludePath(object):
                 if folder_tier == 0:
                     logger.debug('Private module %s is included', source_folder)
                     paths.append(source_folder)
-        
+                    
+            is_prescient = self.project_layout.isPrescientModule(folder_path)
+            if is_prescient:
+                tier_folder = self.project_layout.getIncludeFolder(0)
+                logger.debug('Tier %d folder %s is included', t, tier_folder)
+                paths.append(tier_folder)
+                
             for t in range(min_tier, tier + 1):
                 tier_folder = self.project_layout.getIncludeFolder(t)
                 logger.debug('Tier %d folder %s is included', t, tier_folder)

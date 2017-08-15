@@ -188,3 +188,18 @@ class TestProjectLayout(unittest.TestCase):
     	project = ProjectLayout()
     	project.setTierStepLimit(0)
     	self.assertEqual(1, project.getMinimumReachableTier(5))
+    	
+    def test_a_module_is_by_default_not_prescient(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('Source/*/BusinessLogic', 2)    	
+        self.assertFalse(project.isPrescientModule('Source/Module1/Entities'))
+        
+    def test_a_module_is_able_to_be_configured_not_prescient(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('Source/*/Entities', 2, None, False)    	
+        self.assertFalse(project.isPrescientModule('Source/Module1/Entities'))
+        
+    def test_a_module_is_able_to_be_configured_prescient(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('*/CodeLib', 2, None, True)    	
+        self.assertTrue(project.isPrescientModule('code/CodeLib'))

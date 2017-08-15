@@ -20,8 +20,9 @@ class YAMLProjectLayout(ProjectLayout):
             if 'private' == tier:
                 tier = -1
             pattern = module.get('pattern', '')
+            is_prescient = module.get('prescient', False)
             if isinstance(tier, (int, long)):
-                self.addTierForModulesLike(pattern, tier)
+                self.addTierForModulesLike(pattern, tier, None, is_prescient)
                 
         for module in config.get('third_party_modules', []):
             tier = module.get('tier', 1)

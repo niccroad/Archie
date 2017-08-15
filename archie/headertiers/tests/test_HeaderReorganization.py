@@ -113,6 +113,28 @@ class TestHeaderReorganization(unittest.TestCase):
         reorganizer.reorganizeHeaders()
         self.assertEquals(0, len(services.linked_files))
         
+    def test_private_headers_are_reorganized_if_a_module_is_prescient(self):
+        layout = ProjectLayout()
+        layout.addSourceFolder('Source')
+        layout.addTierForModulesLike('**/private', -1)
+        layout.addTierForModulesLike('**/TestCases', 5, None, True)
+        
+        services = StubProjectServices()
+        services.files_lists['Source'] = []
+        services.files_lists['Source/Module1'] = []
+        services.files_lists['Source/Module1/private'] = ['File1.cpp', 'File1.h', 'File2.h']
+        services.files_lists['build/include/T0'] = []
+        services.folders_lists['Source'] = ['Source/Module1']
+        services.folders_lists['Source/Module1'] = ['Source/Module1/private']
+        services.folders_lists['Source/Module1/private'] = []
+        
+        reorganizer = HeaderReorganization(layout, services)
+        
+        reorganizer.reorganizeHeaders()
+        self.assertEquals(2, len(services.linked_files))
+        self.assertEquals('build/include/T0', services.linked_files['Source/Module1/private/File1.h'])
+        self.assertEquals('build/include/T0', services.linked_files['Source/Module1/private/File2.h'])
+        
     def test_headers_which_are_no_longer_in_the_sources_are_removed_from_the_destinations(self):
         layout = ProjectLayout()
         layout.addSourceFolder('Source')

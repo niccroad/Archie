@@ -61,3 +61,9 @@ class TestYAMLProjectLayout(unittest.TestCase):
     	config = YAMLProjectLayout()
     	config.loadConfig('archie/projectmodel/testdata/Config3.yml')
     	self.assertEquals(4, config.getMinimumReachableTier(6))
+    	
+    def test_a_yaml_project_layout_with_prescient_modules_can_be_loaded_from_file(self):
+    	config = YAMLProjectLayout()
+    	config.loadConfig('archie/projectmodel/testdata/Config3.yml')
+    	self.assertFalse(config.isPrescientModule('Source/Module1/Entities'))
+    	self.assertTrue(config.isPrescientModule('Source/Module1/TestCases'))

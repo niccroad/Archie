@@ -135,3 +135,21 @@ class TestHeaderReorganization(unittest.TestCase):
         path_resolver = IncludePath(layout, services)
         self.assertEqual(['RenderLib', 'DBLib', 'build/include/T2', 'build/include/T3'], path_resolver.resolveIncludePaths('Source/Module1'))
         
+    def test_reorganize_headers_for_a_prescient_module(self):
+        layout = ProjectLayout()
+        layout.addSourceFolder('Source')
+        layout.addTierForModulesLike('**/Module2', 3, None, True)
+        
+        services = StubProjectServices()
+        services.files_lists['Source'] = []
+        services.files_lists['Source/Module2'] = ['Source/Module2/File1.cpp', 'Source/Module2/File1.h', 'Source/Module2/File2.h']
+        services.folders_lists['Source'] = ['Source/Module2']
+        services.folders_lists['Source/Module2'] = []
+        
+        path_resolver = IncludePath(layout, services)
+        self.assertEqual(['build/include/T0',
+                          'build/include/T1',
+                          'build/include/T2',
+                          'build/include/T3'],
+                         path_resolver.resolveIncludePaths('Source/Module2'))
+        
