@@ -30,7 +30,22 @@ class TestProjectLayout(unittest.TestCase):
     	project = ProjectLayout()
     	project.setBaseIncludeFolder('Build/include')
     	self.assertEqual('Build/include/T1', project.getIncludeFolder(1))
-    	self.assertEqual('Build/include/T4', project.getIncludeFolder(4))    	
+    	self.assertEqual('Build/include/T4', project.getIncludeFolder(4))
+    	
+    def test_get_third_party_include_folder_returns_an_empty_list_for_no_folders(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('*/CodeLib', 4, 'code/CodeLib')
+    	self.assertEqual([], project.getThirdPartyIncludeFolders(1))
+    	
+    def test_get_third_party_include_folder_returns_third_party_folders_in_that_tier(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('*/CodeLib', 1, 'code/CodeLib')
+    	self.assertEqual(['code/CodeLib'], project.getThirdPartyIncludeFolders(1))
+    	
+    def test_get_third_party_include_folder_returns_an_empty_list_for_higher_tiers_than_configured(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('*/CodeLib', 1, 'code/CodeLib')
+    	self.assertEqual([], project.getThirdPartyIncludeFolders(5))
     	
     def test_a_dot_h_file_is_an_include_file(self):
     	project = ProjectLayout()
@@ -127,11 +142,26 @@ class TestProjectLayout(unittest.TestCase):
         
     def test_a_module_is_able_to_be_configured_not_third_party(self):
     	project = ProjectLayout()
-    	project.addTierForModulesLike('Source/*/Entities', 2, False)    	
+    	project.addTierForModulesLike('Source/*/Entities', 2, None)    	
         self.assertFalse(project.isThirdPartyModule('Source/Module1/Entities'))
         
     def test_a_module_is_able_to_be_configured_third_party(self):
     	project = ProjectLayout()
-    	project.addTierForModulesLike('*/CodeLib', 2, True)    	
+    	project.addTierForModulesLike('*/CodeLib', 2, 'code/CodeLib')    	
         self.assertTrue(project.isThirdPartyModule('code/CodeLib'))
+        
+    def test_a_module_by_default_has_no_third_party_path(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('Source/*/BusinessLogic', 2)    	
+        self.assertTrue(project.thirdPartyIncludePath('Source/Module1/Entities') == None)
+        
+    def test_a_module_is_able_to_be_configured_with_no_third_party_path(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('Source/*/Entities', 2, None)    	
+        self.assertTrue(project.thirdPartyIncludePath('Source/Module1/Entities') == None)
+        
+    def test_a_module_is_able_to_be_configured_with_a_third_party_path(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('*/CodeLib', 2, 'code/CodeLib')    	
+        self.assertEqual('code/CodeLib', project.thirdPartyIncludePath('code/CodeLib'))
 

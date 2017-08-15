@@ -50,3 +50,9 @@ class TestYAMLProjectLayout(unittest.TestCase):
     	self.assertEquals(4, config.tierForModule('Source/Module1/Plugins'))
     	self.assertEquals(5, config.tierForModule('Source/Module1/TestCases'))
     	self.assertEquals(5, config.tierForModule('Source/Module1/private'))    	
+
+    def test_a_yaml_project_layout_with_third_party_includes_can_be_loaded_from_file(self):
+    	config = YAMLProjectLayout()
+    	config.loadConfig('archie/projectmodel/testdata/Config3.yml')
+    	self.assertEquals(['thirdparty/QtCore'], config.getThirdPartyIncludeFolders(1))
+    	self.assertEquals(['thirdparty/QtSql', 'thirdparty/QtOpenGL'], config.getThirdPartyIncludeFolders(4))

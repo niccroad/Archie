@@ -18,3 +18,10 @@ class YAMLProjectLayout(ProjectLayout):
             pattern = module.get('pattern', '')
             if isinstance(tier, (int, long)):
                 self.addTierForModulesLike(pattern, tier)
+                
+        for module in config.get('third_party_modules', []):
+            tier = module.get('tier', 1)
+            include_path = module.get('include_path', None)
+            if isinstance(tier, (int, long)):
+                self.addTierForModulesLike(include_path, tier, include_path)
+

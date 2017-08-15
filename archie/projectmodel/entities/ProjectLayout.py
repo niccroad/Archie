@@ -1,8 +1,9 @@
 import re
 
 class TierPattern(object):
-	def __init__(self, matcher, is_third_party = False):
-		self.is_third_party = is_third_party
+	def __init__(self, matcher, third_party_path = None):
+		self.is_third_party = (third_party_path != None)
+		self.third_party_path = third_party_path 
 		self.matcher = matcher
 	
 	def match(self, folder_name):
@@ -32,6 +33,15 @@ class ProjectLayout(object):
         self._fillTierFolders(tier)
         return self.include_base_path + '/' + self.tier_folders[tier]
         
+    def getThirdPartyIncludeFolders(self, tier):
+    	include_folders = []
+    	if len(self.tier_patterns) > tier:
+            patterns = self.tier_patterns[tier]
+            for pattern in patterns:
+        	    if pattern.is_third_party:
+        		    include_folders.append(pattern.third_party_path)
+    	return include_folders
+        
     def addHeaderPattern(self, pattern):
         matcher = self._convertWildcardsToMatcher(pattern)
         self.header_matchers.append(matcher)
@@ -56,13 +66,13 @@ class ProjectLayout(object):
                 return True
         return False
         
-    def addTierForModulesLike(self, pattern, tier, is_third_party = False):
+    def addTierForModulesLike(self, pattern, tier, third_party_path = None):
         if tier < 0:
             tier = 0
         while (len(self.tier_patterns) <= tier):
             self.tier_patterns.append([])
         matcher = self._convertWildcardsToMatcher(pattern)
-        tier_pattern = TierPattern(matcher, is_third_party)
+        tier_pattern = TierPattern(matcher, third_party_path)
         self.tier_patterns[tier].append(tier_pattern)
         
     def _convertWildcardsToMatcher(self, pattern):
@@ -99,3 +109,12 @@ class ProjectLayout(object):
                 if m != None:
                     return pattern.is_third_party
     	return False
+    	
+    def thirdPartyIncludePath(self, folder_name):
+        for t in range(len(self.tier_patterns)):
+            patterns = self.tier_patterns[t]
+            for pattern in patterns:
+                m = pattern.match(folder_name)
+                if m != None:
+                    return pattern.third_party_path
+    	return None
