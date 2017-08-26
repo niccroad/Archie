@@ -6,7 +6,7 @@ class HeaderReorganization(object):
         self.project_services = project_services
     
     def reorganizeHeaders(self):
-    	logger = logging.getLogger('Archie')
+        logger = logging.getLogger('Archie')
         logger.debug('Reorganizing source headers into tier folders')
         
         expected_installed_files = dict()
