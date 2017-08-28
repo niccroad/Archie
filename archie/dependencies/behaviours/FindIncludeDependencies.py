@@ -161,13 +161,13 @@ class FindIncludeDependencies(object):
                 for h in dep.header_files:
                     try:
                         header_module = self._moduleName(os.path.basename(h))
-                        n2 = self.flat_module_list.index(header_module)
+                        n2 = module_list.index(header_module)
                     except ValueError:
                         pass
                 for s in dep.source_files:
                     try:
                         source_module = self._moduleName(os.path.basename(s))
-                        n2 = self.flat_module_list.index(source_module)
+                        n2 = module_list.index(source_module)
                     except ValueError:
                         pass            
                 if n2 != None:
