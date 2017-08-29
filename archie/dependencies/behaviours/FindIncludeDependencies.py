@@ -30,6 +30,7 @@ class FindIncludeDependencies(object):
         # Go through the source, and find all the header and translation unit
         # pairs.
         build_folder_stack = []
+        self.flat_module_list = []
         source_folders = self.project_layout.getSourceFolders()
         if base_path != None:
             based_source_folders = []
@@ -41,21 +42,25 @@ class FindIncludeDependencies(object):
         while len(build_folder_stack) > 0:
             source_folder_list = build_folder_stack.pop()
             for source_folder in source_folder_list:
+                modules_in_folder = []
                 source_files = self.project_services.listFiles(source_folder)
                 for file_name in source_files:
                     source_file = source_folder + '/' + file_name
                     module_file = self._moduleName(file_name)
                     if not module_file in translation_units:
                         translation_units[module_file] = TranslationUnit(None)
+                        modules_in_folder.append(module_file)
                     if self.project_layout.isIncludeFile(source_file):
                         translation_units[module_file].addHeaderFile(source_file)
                     else:
                         translation_units[module_file].addSourceFile(source_file)
-                    
+                        
+                folder_module = ModuleCollection(source_folder, modules_in_folder)
+                self.flat_module_list.append(folder_module)
                 build_folder_stack.append(self.project_services.listFolders(source_folder))
         #
         self.include_dependencies = dict()
-        self.flat_module_list = []
+        
         for module, translation_unit in translation_units.iteritems():
             self.flat_module_list.append(module)
             if module not in self.include_dependencies:
@@ -77,20 +82,6 @@ class FindIncludeDependencies(object):
             num_attempts = len(module_list)
             while num_attempts > 0:
                 m1 = module_list.pop(0)
-                n2 = None
-                for dep in self.include_dependencies[str(m1)]:
-                    for h in dep.header_files:
-                        try:
-                            header_module = self._moduleName(os.path.basename(h))
-                            n2 = module_list.index(header_module)
-                        except ValueError:
-                            pass
-                    for s in dep.source_files:
-                        try:
-                            source_module = self._moduleName(os.path.basename(s))
-                            n2 = module_list.index(source_module)
-                        except ValueError:
-                            pass
                 if n2 == None:
                     sorted_list.append(m1)
                     break
@@ -146,6 +137,24 @@ class FindIncludeDependencies(object):
             max_i = next_step[max_i][max_j]
             max_dist = max_dist - 1
         return path_list
+
+    def _findDependencyOn(self, module_name, module_list):
+        if str(module_name) not in self.include_dependencies:
+            
+        for dep in self.include_dependencies[str(module_name)]:
+            for h in dep.header_files:
+                try:
+                    header_module = self._moduleName(os.path.basename(h))
+                    return module_list.index(header_module)
+                except ValueError:
+                    pass
+            for s in dep.source_files:
+                try:
+                    source_module = self._moduleName(os.path.basename(s))
+                    return module_list.index(source_module)
+                except ValueError:
+                    pass
+        return None
 
     def _dependencyMatrix(self, module_list):
         dependency_count = []
