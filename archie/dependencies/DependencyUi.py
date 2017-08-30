@@ -55,14 +55,6 @@ class DependencyUi(object):
         
         self.calculateDependencies()
 
-        ruler_height = 0
-        ruler_width = 0
-        for item in self.hrulerframe.grid_slaves(row=0):
-            ruler_height = max(item.winfo_reqheight(), ruler_height)
-        for item in self.vrulerframe.grid_slaves(column=0):
-            ruler_width = max(item.winfo_reqwidth(), ruler_width)
-        self.hrulercanvas.config(width=300, height=ruler_height)
-        self.vrulercanvas.config(width=ruler_width, height=300)
         self.mainframe.columnconfigure(0, weight=0)
         self.mainframe.columnconfigure(1, weight=1)
         self.mainframe.columnconfigure(2, weight=0)
@@ -80,9 +72,23 @@ class DependencyUi(object):
 
     def _onHRulerCanvasConfigure(self, event):
         self.hrulercanvas.configure(scrollregion=self.hrulerframe.bbox("all"))
+        x1,y1,width,height=self.hrulerframe.bbox("all")
+        self.hrulercanvas.config(height=height)
+
+        columns = self.hrulerframe.grid_size()[0]
+        for c in range(columns):
+            x1,y1,width,height = self.hrulerframe.grid_bbox(column=c, row=1)
+            self.deps_frame.columnconfigure(c, minsize=width)            
         
     def _onVRulerCanvasConfigure(self, event):
         self.vrulercanvas.configure(scrollregion=self.vrulerframe.bbox("all"))
+        x1,y1,width,height=self.vrulerframe.bbox("all")
+        self.vrulercanvas.config(width=width)
+
+        rows = self.vrulerframe.grid_size()[1]
+        for r in range(rows):
+            x1,y1,width,height = self.vrulerframe.grid_bbox(column=1, row=r)
+            self.deps_frame.rowconfigure(r, minsize=height)            
         
     def _onDepsCanvasConfigure(self, event):
         self.deps_canvas.configure(scrollregion=self.deps_frame.bbox("all"))
@@ -99,21 +105,28 @@ class DependencyUi(object):
         
         resolver.findIncludeDependencies('examples/librarymanagement')
         module_names = resolver.getModuleList()
-        self._insertColumns(module_names, 1)
+        self._insertColumns(module_names, 1, 0)
         self._insertDependenciesCol(resolver, module_names, module_names, 1)
         self.hrulerframe.rowconfigure(0, weight=1)
+        self.hrulerframe.rowconfigure(1, weight=1)
         self.vrulerframe.columnconfigure(0, weight=1)
-        self._sizeColumns(module_names, 1)
+        self.vrulerframe.columnconfigure(1, weight=1)
 
-    def _insertColumns(self, module_names, n):
+    def _insertColumns(self, module_names, n, d):
         for module in module_names:
             if isinstance(module, str):
                 module_name = str(module)
-                ttk.Button(self.hrulerframe, text=module_name).grid(row=0, column=n)
-                ttk.Button(self.vrulerframe, text=module_name).grid(row=n, column=0)
+                ttk.Button(self.hrulerframe, text=module_name).grid(row=d, column=n, sticky="NSEW")
+                ttk.Button(self.vrulerframe, text=module_name).grid(row=n, column=d, sticky="NSEW")
                 n = n + 1
+            elif module.is_loop:
+                n = self._insertColumns(module.module_list, n, d)
             else:
-                n = self._insertColumns(module.module_list, n)
+                n_prior = n
+                n = self._insertColumns(module.module_list, n, d + 1)
+                module_name = str(module)
+                ttk.Button(self.hrulerframe, text=module_name).grid(row=d, column=n_prior, columnspan=n - n_prior, sticky="NSEW")
+                ttk.Button(self.vrulerframe, text=module_name).grid(row=n_prior, column=d, rowspan=n - n_prior, sticky="NSEW")
         return n
 
     def _insertDependenciesCol(self, resolver, module_names, original_module_names, n1):
@@ -142,19 +155,7 @@ class DependencyUi(object):
                 n2 = n2 + 1
             else:
                 n2 = self._insertDependenciesRow(resolver, m1, m2.module_list, n1, n2)
-
-    def _sizeColumns(self, module_names, n):
-        for module in module_names:
-            if isinstance(module, str):
-                module_name = str(module)
-                w = self.hrulerframe.grid_slaves(row=0, column=n)[0].winfo_reqwidth()
-                h = self.vrulerframe.grid_slaves(row=n, column=0)[0].winfo_reqheight()
-                self.deps_frame.columnconfigure(n, minsize=w)
-                self.deps_frame.rowconfigure(n, minsize=h)
-                n = n + 1
-            else:
-                n = self._sizeColumns(module.module_list, n)
-        return n
+        return n2
         
 def main():
     ui = DependencyUi()

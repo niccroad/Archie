@@ -3,9 +3,10 @@ import logging, os, sys
 from archie.dependencies.entities.ModuleDependency import ModuleDependency, TranslationUnit
 
 class ModuleCollection(object):
-    def __init__(self, name, module_list):
+    def __init__(self, name, module_list, is_loop):
         self.name = "(%s:%d)" % (name, len(module_list))
         self.module_list = module_list
+        self.is_loop = is_loop
 
     def append(self, item):
         self.module_list.append(item)
@@ -30,7 +31,7 @@ class FindIncludeDependencies(object):
         # Go through the source, and find all the header and translation unit
         # pairs.
         build_folder_stack = []
-        self.flat_module_list = []
+        self.tree_module_list = []
         source_folders = self.project_layout.getSourceFolders()
         if base_path != None:
             based_source_folders = []
@@ -54,13 +55,14 @@ class FindIncludeDependencies(object):
                         translation_units[module_file].addHeaderFile(source_file)
                     else:
                         translation_units[module_file].addSourceFile(source_file)
-                        
-                folder_module = ModuleCollection(source_folder, modules_in_folder)
-                self.flat_module_list.append(folder_module)
+
+                if len(modules_in_folder) > 0:        
+                    folder_module = ModuleCollection(source_folder, modules_in_folder, False)
+                    self.tree_module_list.append(folder_module)
                 build_folder_stack.append(self.project_services.listFolders(source_folder))
         #
         self.include_dependencies = dict()
-        
+        self.flat_module_list = []
         for module, translation_unit in translation_units.iteritems():
             self.flat_module_list.append(module)
             if module not in self.include_dependencies:
@@ -71,18 +73,23 @@ class FindIncludeDependencies(object):
                 if module_name in translation_units:
                     self.include_dependencies[module].add(translation_units[module_name])
 
-        self.tree_module_list = self._topologicalSortModules(self.flat_module_list)
+        self.tree_module_list = self._topologicalSortModules(self.tree_module_list)
         self.flat_module_list = self._flattenModuleHierarchy(self.tree_module_list)
         self.flat_dependency_count = self._dependencyMatrix(self.flat_module_list)
 
     # Khan's algorithm for topological sort of a DAG.
     def _topologicalSortModules(self, module_list):
+        for m in module_list:
+            if isinstance(m, ModuleCollection):
+                m.module_list = self._topologicalSortModules(m.module_list)
+        
         sorted_list = []
         while len(module_list) > 0:
             num_attempts = len(module_list)
             while num_attempts > 0:
                 m1 = module_list.pop(0)
-                if n2 == None:
+                count = self._sumDependencies(m1, module_list)
+                if count == 0:
                     sorted_list.append(m1)
                     break
                 else:
@@ -138,50 +145,53 @@ class FindIncludeDependencies(object):
             max_dist = max_dist - 1
         return path_list
 
-    def _findDependencyOn(self, module_name, module_list):
-        if str(module_name) not in self.include_dependencies:
-            
-        for dep in self.include_dependencies[str(module_name)]:
-            for h in dep.header_files:
-                try:
-                    header_module = self._moduleName(os.path.basename(h))
-                    return module_list.index(header_module)
-                except ValueError:
-                    pass
-            for s in dep.source_files:
-                try:
-                    source_module = self._moduleName(os.path.basename(s))
-                    return module_list.index(source_module)
-                except ValueError:
-                    pass
-        return None
+    def _sumDependencies(self, module, module_list):
+        dependency_row = self._findDependencyCounts(module, module_list)
+        count = 0
+        for i in range(len(dependency_row)):
+            count = count + dependency_row[i]
+        return count
 
+    def _findDependencyCounts(self, module, module_list):
+        dependency_row = []
+        for m in module_list:
+            dependency_row.append(0)
+            
+        if isinstance(module, ModuleCollection):
+            for m in module.module_list:
+                sub_row = self._findDependencyCounts(m, module_list)
+                for i in range(len(sub_row)):
+                    dependency_row[i] = dependency_row[i] + sub_row[i]
+            return dependency_row
+            
+        for dep in self.include_dependencies[str(module)]:
+            for h in dep.header_files:
+                header_module = self._moduleName(os.path.basename(h))
+                for i in range(len(module_list)):
+                    if self._isOrIsInModule(header_module, module_list[i]):
+                        dependency_row[i] = 1
+            for s in dep.source_files:
+                source_module = self._moduleName(os.path.basename(s))
+                for i in range(len(module_list)):
+                    if self._isOrIsInModule(source_module, module_list[i]):
+                        dependency_row[i] = 1
+        return dependency_row
+
+    def _isOrIsInModule(self, module_name, module):
+        if isinstance(module, ModuleCollection):
+            for m in module.module_list:
+                if self._isOrIsInModule(module_name, m):
+                    return True
+            return False
+        return module_name == module
+    
     def _dependencyMatrix(self, module_list):
         dependency_count = []
 
         n1 = 0
         for m1 in module_list:
-            dependency_count.append([])
-            for n2 in range(len(module_list)):
-                dependency_count[n1].append(0)
-                
-            for dep in self.include_dependencies[str(m1)]:
-                n2 = None
-                for h in dep.header_files:
-                    try:
-                        header_module = self._moduleName(os.path.basename(h))
-                        n2 = module_list.index(header_module)
-                    except ValueError:
-                        pass
-                for s in dep.source_files:
-                    try:
-                        source_module = self._moduleName(os.path.basename(s))
-                        n2 = module_list.index(source_module)
-                    except ValueError:
-                        pass            
-                if n2 != None:
-                    dependency_count[n1][n2] = 1
-            n1 = n1 + 1
+            dependency_row = self._findDependencyCounts(m1, module_list)
+            dependency_count.append(dependency_row)
 
         return dependency_count
     
@@ -194,7 +204,7 @@ class FindIncludeDependencies(object):
         return dist
 
     def _loopToModule(self, loop_list):
-        loop_module = ModuleCollection(loop_list[0], loop_list)
+        loop_module = ModuleCollection(loop_list[0], loop_list, True)
         deps = set()
         for m in loop_list:
             deps = deps.union(self.include_dependencies[str(m)])
@@ -204,9 +214,9 @@ class FindIncludeDependencies(object):
     def _flattenModuleHierarchy(self, module_tree):
         module_list = []
         for m in module_tree:
-            module_list.append(str(m))
+            module_list.append(m)
             if isinstance(m, ModuleCollection):
-                module_list += self._flattenModuleHierarchy(m.module_list)
+                module_list += self._flattenModuleHierarchy(m.module_list)                
         return module_list
     
     def _moduleName(self, source_path):
