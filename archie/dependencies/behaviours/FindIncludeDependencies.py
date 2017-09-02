@@ -238,6 +238,9 @@ class FindIncludeDependencies(object):
         return self.tree_module_list
 
     def numDependenciesTo(self, module_from, module_to):
-        index_from = self.flat_module_list.index(module_from)
-        index_to = self.flat_module_list.index(module_to)
-        return self.flat_dependency_count[index_from][index_to]
+        try:
+            index_from = self.flat_module_list.index(module_from)
+            index_to = self.flat_module_list.index(module_to)
+            return self.flat_dependency_count[index_from][index_to]
+        except ValueError:
+            return 0

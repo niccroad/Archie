@@ -7,31 +7,28 @@ from archie.dependencies.plugins.SimpleIncludeDependencyAnalyzer import SimpleIn
 from archie.dependencies.behaviours.FindIncludeDependencies import FindIncludeDependencies
 
 class HeaderState(object):
-    def __init__(self, modules, frame, matrix_labels, matrixframe, ui, layer = 0, horizontal=True):
+    def __init__(self, modules, frame, matrix_labels, ui, layer = 0, horizontal=True):
         self.is_expanded = False
         self.modules = modules
         self.layer = layer
         self.matrix_labels = matrix_labels
-        self.matrixframe = matrixframe
         self.ui = ui
         self.buttons = []
         self.sub_header_states = []
         self._addModules(frame,
                          matrix_labels,
-                         matrixframe,
                          ui,
                          layer,
                          horizontal,
                          0,
                          modules)
             
-    def _addModules(self, frame, matrix_labels, matrixframe, ui, layer, horizontal, item, modules):
+    def _addModules(self, frame, matrix_labels, ui, layer, horizontal, item, modules):
         for module in modules:
             if not isinstance(module, str):
                 if module.is_loop:
                     item = self._addModules(frame,
                                             matrix_labels,
-                                            matrixframe,
                                             ui,
                                             layer,
                                             horizontal,
@@ -42,7 +39,6 @@ class HeaderState(object):
                 sub_state = HeaderState(module.module_list,
                                         frame,
                                         matrix_labels,
-                                        matrixframe,
                                         ui,
                                         layer + 1,
                                         horizontal)
@@ -135,8 +131,19 @@ class HeaderState(object):
                     continue
                 grid_col = self.ui.showDependencyRow(grid_col, module)
         else:
+            self.hideContents(modules)
             grid_col = self.ui.showDependencyRow(grid_col, col_module)
         return grid_col
+
+    def hideContents(self, modules):
+        for i in range(len(modules)):
+            module = modules[i]
+            if not isinstance(module, str):
+                if module.is_loop:
+                    self.hideContents(module.module_list)
+                else:
+                    self.sub_header_states[i].hideContents(module.module_list)
+            self.ui.hideRowContents(module)        
                 
     def showRowContents(self,
                         grid_col,
@@ -268,14 +275,13 @@ class DependencyUi(object):
 
         analyzer = SimpleIncludeDependencyAnalyzer()
         
-        resolver = FindIncludeDependencies(layout, services, analyzer)
+        self.resolver = FindIncludeDependencies(layout, services, analyzer)
         
-        resolver.findIncludeDependencies('examples/librarymanagement')
-        self.module_names = resolver.getModuleList()
+        self.resolver.findIncludeDependencies('examples/librarymanagement')
+        self.module_names = self.resolver.getModuleList()
         self.matrix_labels = dict()
         self._insertRows(self.module_names)
         self._insertCols(self.module_names)
-        #self._insertDependenciesCol(resolver, module_names, module_names, 1)
         self.hrulerframe.rowconfigure(0, weight=1)
         self.hrulerframe.rowconfigure(1, weight=1)
         self.vrulerframe.columnconfigure(0, weight=1)
@@ -285,7 +291,6 @@ class DependencyUi(object):
         self.row_headers = HeaderState(module_names,
                                        self.vrulerframe,
                                        self.matrix_labels,
-                                       self.deps_frame,
                                        self,
                                        0,
                                        False)
@@ -296,7 +301,6 @@ class DependencyUi(object):
         self.col_headers = HeaderState(module_names,
                                        self.hrulerframe,
                                        self.matrix_labels,
-                                       self.deps_frame,
                                        self,
                                        0,
                                        True)
@@ -308,9 +312,10 @@ class DependencyUi(object):
             return grid_col
         if str(col_module) not in self.matrix_labels:
             self.matrix_labels[str(col_module)] = dict()
+        col_dict = self.matrix_labels[str(col_module)]
         self.row_headers.showRowContents(grid_col,
                                          col_module,
-                                         self.matrix_labels[str(col_module)],
+                                         col_dict,
                                          0,
                                          0,
                                          self.module_names,
@@ -318,17 +323,36 @@ class DependencyUi(object):
         grid_col = grid_col + 1        
         return grid_col
 
+    def hideRowContents(self, col_module):
+        if str(col_module) not in self.matrix_labels:
+            return
+        col_dict = self.matrix_labels[str(col_module)]
+        for m, label in col_dict.iteritems():
+            label.grid_forget()
+            
     def showDependencyCell(self, grid_row, row_module, grid_col, col_module, col_dict):
         if str(row_module) not in col_dict:
-            bg_color = 'red'
-            col_dict[str(row_module)] = ttk.Label(self.deps_frame,
-                                                  text='1',
-                                                  anchor=CENTER,
-                                                  background=bg_color)
-        entry_label = self.matrix_labels[str(col_module)][str(row_module)]
-        entry_label.grid(row=grid_row,
-                         column=grid_col,
-                         sticky="NSEW")
+            forward_deps = self.resolver.numDependenciesTo(str(row_module),
+                                                           str(col_module))
+            back_deps = self.resolver.numDependenciesTo(str(col_module),
+                                                        str(row_module))                
+            if forward_deps != 0 or back_deps != 0:
+                if forward_deps == 0:
+                    bg_color = 'red'
+                elif back_deps == 0:
+                    bg_color = 'green'
+                else:
+                    bg_color = 'gray'
+
+                col_dict[str(row_module)] = ttk.Label(self.deps_frame,
+                                                      text='1',
+                                                      anchor=CENTER,
+                                                      background=bg_color)
+        if str(row_module) in col_dict:
+            entry_label = col_dict[str(row_module)]
+            entry_label.grid(row=grid_row,
+                             column=grid_col,
+                             sticky="NSEW")
         grid_row = grid_row + 1
         return grid_row
 
