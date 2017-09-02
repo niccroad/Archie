@@ -7,23 +7,32 @@ from archie.dependencies.plugins.SimpleIncludeDependencyAnalyzer import SimpleIn
 from archie.dependencies.behaviours.FindIncludeDependencies import FindIncludeDependencies
 
 class HeaderState(object):
-    def __init__(self, modules, frame, matrix_labels, matrixframe, layer = 0, horizontal=True):
+    def __init__(self, modules, frame, matrix_labels, matrixframe, ui, layer = 0, horizontal=True):
         self.is_expanded = False
         self.modules = modules
         self.layer = layer
         self.matrix_labels = matrix_labels
         self.matrixframe = matrixframe
+        self.ui = ui
         self.buttons = []
         self.sub_header_states = []
-        self._addModules(frame, matrix_labels, matrixframe, layer, horizontal, 0, modules)
+        self._addModules(frame,
+                         matrix_labels,
+                         matrixframe,
+                         ui,
+                         layer,
+                         horizontal,
+                         0,
+                         modules)
             
-    def _addModules(self, frame, matrix_labels, matrixframe, layer, horizontal, item, modules):
+    def _addModules(self, frame, matrix_labels, matrixframe, ui, layer, horizontal, item, modules):
         for module in modules:
             if not isinstance(module, str):
                 if module.is_loop:
                     item = self._addModules(frame,
                                             matrix_labels,
                                             matrixframe,
+                                            ui,
                                             layer,
                                             horizontal,
                                             item,
@@ -34,6 +43,7 @@ class HeaderState(object):
                                         frame,
                                         matrix_labels,
                                         matrixframe,
+                                        ui,
                                         layer + 1,
                                         horizontal)
                 self.sub_header_states.append(sub_state)
@@ -55,7 +65,7 @@ class HeaderState(object):
             self.sub_header_states[col].is_expanded = not self.sub_header_states[col].is_expanded
         grid_col = int(self.buttons[col].grid_info()['column'])
         span_col = self.showColButtons(col, grid_col)
-        self.showColContents(col, grid_col)
+        self.showColContents(col, grid_col, self.modules)
         return span_col
 
     def _toggleRow(self, row):
@@ -107,48 +117,61 @@ class HeaderState(object):
                 self.sub_header_states[i].hideButtons()
             self.buttons[i].grid_forget()
 
-    def showColContents(self, col, grid_col):
+    def showColContents(self, col, grid_col, modules, col_module = None):
         if self.is_expanded:
-            for i in range(col, len(self.buttons)):
-                if i < len(self.sub_header_states):
-                    grid_col = self.sub_header_states[i].showColContents(i, grid_col)
+            for i in range(col, len(modules)):
+                module = modules[i]
+                if not isinstance(module, str):
+                    if module.is_loop:
+                        grid_col = self.showColContents(0,
+                                                        grid_col,
+                                                        module.module_list,
+                                                        module)
+                    else:
+                        grid_col = self.sub_header_states[i].showColContents(0,
+                                                                             grid_col,
+                                                                             module.module_list,
+                                                                             module)
+                    continue
+                grid_col = self.ui.showDependencyRow(grid_col, module)
         else:
-            for i in range(col, len(self.buttons)):
-                col_module = self.modules[i]
-                if str(col_module) not in self.matrix_labels:
-                    self.matrix_labels[str(col_module)] = dict()
-                self.showRowContents(0, 0, grid_col, col_module, self.matrix_labels[str(col_module)])
-                grid_col = grid_col + 1
+            grid_col = self.ui.showDependencyRow(grid_col, col_module)
         return grid_col
-    
-    def showRowContents(self, row, grid_row, grid_col, col_module, col_dict):
-        span_row = grid_row + 1
+                
+    def showRowContents(self,
+                        grid_col,
+                        col_module,
+                        col_dict,
+                        row,
+                        grid_row,
+                        modules,
+                        row_module = None):
         if self.is_expanded:
-            for i in range(row, len(self.buttons)):
-                if i < len(self.sub_header_states):
-                    grid_row = self.sub_header_states[i].showRowContents(0,
-                                                                         grid_row,
-                                                                         grid_col,
-                                                                         col_module,
-                                                                         col_dict)
-                else:
-                    grid_row = grid_row + 1
-                    
+            for i in range(row, len(modules)):
+                module = modules[i]
+                if not isinstance(module, str):
+                    if module.is_loop:
+                        grid_row = self.showRowContents(grid_col,
+                                                        col_module,
+                                                        col_dict,
+                                                        0,
+                                                        grid_row,
+                                                        module.module_list,
+                                                        module)
+                    else:
+                        grid_row = self.sub_header_states[i].showRowContents(grid_col,
+                                                                             col_module,
+                                                                             col_dict,
+                                                                             0,
+                                                                             grid_row,
+                                                                             module.module_list,
+                                                                             module)
+                    continue
+                grid_row = self.ui.showDependencyCell(grid_row, module, grid_col, col_module, col_dict)
+                
         else:
-            for i in range(row, len(self.buttons)):
-                row_module = self.modules[i]
-                if str(row_module) not in col_dict:
-                    bg_color = 'red'
-                    col_dict[str(row_module)] = ttk.Label(self.matrixframe,
-                                                          text='1',
-                                                          anchor=CENTER,
-                                                          background=bg_color)
-                entry_label = self.matrix_labels[str(col_module)][str(row_module)]
-                entry_label.grid(row=grid_row,
-                                 column=grid_col,
-                                 sticky="NSEW")
-                grid_row = grid_row + 1
-        return grid_row        
+            grid_row = self.ui.showDependencyCell(grid_row, row_module, grid_col, col_module, col_dict)
+        return grid_row     
                 
 class DependencyUi(object):
     def __init__(self):
@@ -248,10 +271,10 @@ class DependencyUi(object):
         resolver = FindIncludeDependencies(layout, services, analyzer)
         
         resolver.findIncludeDependencies('examples/librarymanagement')
-        module_names = resolver.getModuleList()
+        self.module_names = resolver.getModuleList()
         self.matrix_labels = dict()
-        self._insertRows(module_names)
-        self._insertCols(module_names)
+        self._insertRows(self.module_names)
+        self._insertCols(self.module_names)
         #self._insertDependenciesCol(resolver, module_names, module_names, 1)
         self.hrulerframe.rowconfigure(0, weight=1)
         self.hrulerframe.rowconfigure(1, weight=1)
@@ -263,6 +286,7 @@ class DependencyUi(object):
                                        self.vrulerframe,
                                        self.matrix_labels,
                                        self.deps_frame,
+                                       self,
                                        0,
                                        False)
         self.row_headers.is_expanded = True
@@ -273,10 +297,40 @@ class DependencyUi(object):
                                        self.hrulerframe,
                                        self.matrix_labels,
                                        self.deps_frame,
+                                       self,
                                        0,
                                        True)
         self.col_headers.is_expanded = True
         self.col_headers.showColButtons(0, 0)
+
+    def showDependencyRow(self, grid_col, col_module):
+        if col_module == None:
+            return grid_col
+        if str(col_module) not in self.matrix_labels:
+            self.matrix_labels[str(col_module)] = dict()
+        self.row_headers.showRowContents(grid_col,
+                                         col_module,
+                                         self.matrix_labels[str(col_module)],
+                                         0,
+                                         0,
+                                         self.module_names,
+                                         None)
+        grid_col = grid_col + 1        
+        return grid_col
+
+    def showDependencyCell(self, grid_row, row_module, grid_col, col_module, col_dict):
+        if str(row_module) not in col_dict:
+            bg_color = 'red'
+            col_dict[str(row_module)] = ttk.Label(self.deps_frame,
+                                                  text='1',
+                                                  anchor=CENTER,
+                                                  background=bg_color)
+        entry_label = self.matrix_labels[str(col_module)][str(row_module)]
+        entry_label.grid(row=grid_row,
+                         column=grid_col,
+                         sticky="NSEW")
+        grid_row = grid_row + 1
+        return grid_row
 
     def _insertDependenciesCol(self, resolver, module_names, original_module_names, n1):
         for m1 in module_names:
