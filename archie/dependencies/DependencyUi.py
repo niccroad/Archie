@@ -6,6 +6,150 @@ from archie.projectmodel.plugins.YAMLProjectLayout import YAMLProjectLayout
 from archie.dependencies.plugins.SimpleIncludeDependencyAnalyzer import SimpleIncludeDependencyAnalyzer
 from archie.dependencies.behaviours.FindIncludeDependencies import FindIncludeDependencies
 
+class HeaderState(object):
+    def __init__(self, modules, frame, matrix_labels, matrixframe, layer = 0, horizontal=True):
+        self.is_expanded = False
+        self.modules = modules
+        self.layer = layer
+        self.matrix_labels = matrix_labels
+        self.matrixframe = matrixframe
+        self.buttons = []
+        self.sub_header_states = []
+        self._addModules(frame, matrix_labels, matrixframe, layer, horizontal, 0, modules)
+            
+    def _addModules(self, frame, matrix_labels, matrixframe, layer, horizontal, item, modules):
+        for module in modules:
+            if not isinstance(module, str):
+                if module.is_loop:
+                    item = self._addModules(frame,
+                                            matrix_labels,
+                                            matrixframe,
+                                            layer,
+                                            horizontal,
+                                            item,
+                                            module.module_list)
+                    continue
+                
+                sub_state = HeaderState(module.module_list,
+                                        frame,
+                                        matrix_labels,
+                                        matrixframe,
+                                        layer + 1,
+                                        horizontal)
+                self.sub_header_states.append(sub_state)
+                
+            if horizontal:
+                button = ttk.Button(frame,
+                                    text=str(module),
+                                    command=lambda col=item: self._toggleCol(col))
+            else:
+                button = ttk.Button(frame,
+                                    text=str(module),
+                                    command=lambda row=item: self._toggleRow(row))
+            self.buttons.append(button)
+            item = item + 1
+        return item
+
+    def _toggleCol(self, col):
+        if col < len(self.sub_header_states):
+            self.sub_header_states[col].is_expanded = not self.sub_header_states[col].is_expanded
+        grid_col = int(self.buttons[col].grid_info()['column'])
+        span_col = self.showColButtons(col, grid_col)
+        self.showColContents(col, grid_col)
+        return span_col
+
+    def _toggleRow(self, row):
+        if row < len(self.sub_header_states):
+            self.sub_header_states[row].is_expanded = not self.sub_header_states[row].is_expanded
+        grid_row = int(self.buttons[row].grid_info()['row'])
+        span_row = self.showRowButtons(row, grid_row)
+        return span_row
+
+    def showRowButtons(self, row, grid_row):
+        span_row = grid_row + 1
+        if self.is_expanded:
+            for i in range(row, len(self.buttons)):
+                if i < len(self.sub_header_states):
+                    span_row = self.sub_header_states[i].showRowButtons(0,
+                                                                        grid_row)
+                else:
+                    span_row = grid_row + 1
+                self.buttons[i].grid(row=grid_row,
+                                     column=self.layer,
+                                     rowspan=span_row - grid_row,
+                                     sticky="NSEW")
+                grid_row = span_row
+        else:
+            self.hideButtons()
+        return span_row        
+
+    def showColButtons(self, col, grid_col):
+        span_col = grid_col + 1
+        if self.is_expanded:
+            for i in range(col, len(self.buttons)):
+                if i < len(self.sub_header_states):
+                    span_col = self.sub_header_states[i].showColButtons(0,
+                                                                        grid_col)
+                else:
+                    span_col = grid_col + 1
+                self.buttons[i].grid(row=self.layer,
+                                     column=grid_col,
+                                     columnspan=span_col - grid_col,
+                                     sticky="NSEW")
+                grid_col = span_col
+        else:
+            self.hideButtons()
+        return span_col
+
+    def hideButtons(self):
+        for i in range(len(self.buttons)):
+            if i < len(self.sub_header_states):
+                self.sub_header_states[i].hideButtons()
+            self.buttons[i].grid_forget()
+
+    def showColContents(self, col, grid_col):
+        if self.is_expanded:
+            for i in range(col, len(self.buttons)):
+                if i < len(self.sub_header_states):
+                    grid_col = self.sub_header_states[i].showColContents(i, grid_col)
+        else:
+            for i in range(col, len(self.buttons)):
+                col_module = self.modules[i]
+                if str(col_module) not in self.matrix_labels:
+                    self.matrix_labels[str(col_module)] = dict()
+                self.showRowContents(0, 0, grid_col, col_module, self.matrix_labels[str(col_module)])
+                grid_col = grid_col + 1
+        return grid_col
+    
+    def showRowContents(self, row, grid_row, grid_col, col_module, col_dict):
+        span_row = grid_row + 1
+        if self.is_expanded:
+            for i in range(row, len(self.buttons)):
+                if i < len(self.sub_header_states):
+                    grid_row = self.sub_header_states[i].showRowContents(0,
+                                                                         grid_row,
+                                                                         grid_col,
+                                                                         col_module,
+                                                                         col_dict)
+                else:
+                    grid_row = grid_row + 1
+                    
+        else:
+            for i in range(row, len(self.buttons)):
+                row_module = self.modules[i]
+                if str(row_module) not in col_dict:
+                    bg_color = 'red'
+                    col_dict[str(row_module)] = ttk.Label(self.matrixframe,
+                                                          text='1',
+                                                          anchor=CENTER,
+                                                          background=bg_color)
+                entry_label = self.matrix_labels[str(col_module)][str(row_module)]
+                entry_label.grid(row=grid_row,
+                                 column=grid_col,
+                                 sticky="NSEW")
+                grid_row = grid_row + 1
+        return grid_row        
+                
 class DependencyUi(object):
     def __init__(self):
         self.root = Tk()
@@ -105,29 +249,34 @@ class DependencyUi(object):
         
         resolver.findIncludeDependencies('examples/librarymanagement')
         module_names = resolver.getModuleList()
-        self._insertColumns(module_names, 1, 0)
-        self._insertDependenciesCol(resolver, module_names, module_names, 1)
+        self.matrix_labels = dict()
+        self._insertRows(module_names)
+        self._insertCols(module_names)
+        #self._insertDependenciesCol(resolver, module_names, module_names, 1)
         self.hrulerframe.rowconfigure(0, weight=1)
         self.hrulerframe.rowconfigure(1, weight=1)
         self.vrulerframe.columnconfigure(0, weight=1)
         self.vrulerframe.columnconfigure(1, weight=1)
 
-    def _insertColumns(self, module_names, n, d):
-        for module in module_names:
-            if isinstance(module, str):
-                module_name = str(module)
-                ttk.Button(self.hrulerframe, text=module_name).grid(row=d, column=n, sticky="NSEW")
-                ttk.Button(self.vrulerframe, text=module_name).grid(row=n, column=d, sticky="NSEW")
-                n = n + 1
-            elif module.is_loop:
-                n = self._insertColumns(module.module_list, n, d)
-            else:
-                n_prior = n
-                n = self._insertColumns(module.module_list, n, d + 1)
-                module_name = str(module)
-                ttk.Button(self.hrulerframe, text=module_name).grid(row=d, column=n_prior, columnspan=n - n_prior, sticky="NSEW")
-                ttk.Button(self.vrulerframe, text=module_name).grid(row=n_prior, column=d, rowspan=n - n_prior, sticky="NSEW")
-        return n
+    def _insertRows(self, module_names):
+        self.row_headers = HeaderState(module_names,
+                                       self.vrulerframe,
+                                       self.matrix_labels,
+                                       self.deps_frame,
+                                       0,
+                                       False)
+        self.row_headers.is_expanded = True
+        self.row_headers.showRowButtons(0, 0)
+        
+    def _insertCols(self, module_names):
+        self.col_headers = HeaderState(module_names,
+                                       self.hrulerframe,
+                                       self.matrix_labels,
+                                       self.deps_frame,
+                                       0,
+                                       True)
+        self.col_headers.is_expanded = True
+        self.col_headers.showColButtons(0, 0)
 
     def _insertDependenciesCol(self, resolver, module_names, original_module_names, n1):
         for m1 in module_names:
