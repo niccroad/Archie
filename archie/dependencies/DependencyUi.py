@@ -61,7 +61,7 @@ class HeaderState(object):
             self.sub_header_states[col].is_expanded = not self.sub_header_states[col].is_expanded
         grid_col = int(self.buttons[col].grid_info()['column'])
         span_col = self.showColButtons(col, grid_col)
-        self.showColContents(col, grid_col, self.modules)
+        self.ui.updateContents()
         return span_col
 
     def _toggleRow(self, row):
@@ -69,6 +69,7 @@ class HeaderState(object):
             self.sub_header_states[row].is_expanded = not self.sub_header_states[row].is_expanded
         grid_row = int(self.buttons[row].grid_info()['row'])
         span_row = self.showRowButtons(row, grid_row)
+        self.ui.updateContents()
         return span_row
 
     def showRowButtons(self, row, grid_row):
@@ -113,27 +114,30 @@ class HeaderState(object):
                 self.sub_header_states[i].hideButtons()
             self.buttons[i].grid_forget()
 
-    def showColContents(self, col, grid_col, modules, col_module = None):
+    def showColContents(self, col, modules, col_module = None):
         if self.is_expanded:
-            for i in range(col, len(modules)):
+            for i in range(0, len(modules)):
                 module = modules[i]
                 if not isinstance(module, str):
                     if module.is_loop:
-                        grid_col = self.showColContents(0,
-                                                        grid_col,
-                                                        module.module_list,
-                                                        module)
-                    else:
-                        grid_col = self.sub_header_states[i].showColContents(0,
-                                                                             grid_col,
-                                                                             module.module_list,
-                                                                             module)
-                    continue
-                grid_col = self.ui.showDependencyRow(grid_col, module)
+                        self.showColContents(col + i,
+                                             module.module_list,
+                                             module)
+                        continue
+                    elif self.sub_header_states[i].is_expanded:
+                        self.sub_header_states[i].showColContents(0,
+                                                                  module.module_list,
+                                                                  module)
+                        continue
+                info = self.buttons[col + i].grid_info()
+                grid_col = int(info['column'])
+                colspan = int(info['columnspan'])
+                self.ui.showDependencyRow(grid_col, colspan, module)
         else:
-            self.hideContents(modules)
-            grid_col = self.ui.showDependencyRow(grid_col, col_module)
-        return grid_col
+            info = self.buttons[col].grid_info()
+            grid_col = int(info['column'])
+            colspan = int(info['columnspan'])
+            self.ui.showDependencyRow(grid_col, colspan, col_module)
 
     def hideContents(self, modules):
         for i in range(len(modules)):
@@ -147,38 +151,43 @@ class HeaderState(object):
                 
     def showRowContents(self,
                         grid_col,
+                        colspan,
                         col_module,
                         col_dict,
                         row,
-                        grid_row,
                         modules,
                         row_module = None):
         if self.is_expanded:
-            for i in range(row, len(modules)):
+            for i in range(0, len(modules)):
                 module = modules[i]
                 if not isinstance(module, str):
                     if module.is_loop:
-                        grid_row = self.showRowContents(grid_col,
-                                                        col_module,
-                                                        col_dict,
-                                                        0,
-                                                        grid_row,
-                                                        module.module_list,
-                                                        module)
-                    else:
-                        grid_row = self.sub_header_states[i].showRowContents(grid_col,
-                                                                             col_module,
-                                                                             col_dict,
-                                                                             0,
-                                                                             grid_row,
-                                                                             module.module_list,
-                                                                             module)
-                    continue
-                grid_row = self.ui.showDependencyCell(grid_row, module, grid_col, col_module, col_dict)
-                
+                        self.showRowContents(grid_col,
+                                             colspan,
+                                             col_module,
+                                             col_dict,
+                                             row + i,
+                                             module.module_list,
+                                             module)
+                        continue
+                    elif self.sub_header_states[i].is_expanded:
+                        self.sub_header_states[i].showRowContents(grid_col,
+                                                                  colspan,
+                                                                  col_module,
+                                                                  col_dict,
+                                                                  0,
+                                                                  module.module_list,
+                                                                  module)
+                        continue
+                info = self.buttons[row + i].grid_info()
+                grid_row = int(info['row'])
+                rowspan = int(info['rowspan'])
+                self.ui.showDependencyCell(grid_row, rowspan, module, grid_col, colspan, col_module, col_dict)                
         else:
-            grid_row = self.ui.showDependencyCell(grid_row, row_module, grid_col, col_module, col_dict)
-        return grid_row     
+            info = self.buttons[col].grid_info()
+            grid_row = int(info['row'])
+            rowspan = int(info['rowspan'])
+            self.ui.showDependencyCell(grid_row, rowspan, row_module, grid_col, colspan, col_module, col_dict)
                 
 class DependencyUi(object):
     def __init__(self):
@@ -282,6 +291,7 @@ class DependencyUi(object):
         self.matrix_labels = dict()
         self._insertRows(self.module_names)
         self._insertCols(self.module_names)
+        self.updateContents()
         self.hrulerframe.rowconfigure(0, weight=1)
         self.hrulerframe.rowconfigure(1, weight=1)
         self.vrulerframe.columnconfigure(0, weight=1)
@@ -307,21 +317,30 @@ class DependencyUi(object):
         self.col_headers.is_expanded = True
         self.col_headers.showColButtons(0, 0)
 
-    def showDependencyRow(self, grid_col, col_module):
+    def showDependencyRow(self, grid_col, colspan, col_module):
         if col_module == None:
             return grid_col
         if str(col_module) not in self.matrix_labels:
             self.matrix_labels[str(col_module)] = dict()
         col_dict = self.matrix_labels[str(col_module)]
         self.row_headers.showRowContents(grid_col,
+                                         colspan,
                                          col_module,
                                          col_dict,
-                                         0,
                                          0,
                                          self.module_names,
                                          None)
         grid_col = grid_col + 1        
         return grid_col
+
+    def updateContents(self):
+        self.hideContents()
+        self.col_headers.showColContents(0, self.module_names)
+
+    def hideContents(self):
+        for m1, col_dict in self.matrix_labels.iteritems():
+            for m2, label in col_dict.iteritems():
+                label.grid_forget()        
 
     def hideRowContents(self, col_module):
         if str(col_module) not in self.matrix_labels:
@@ -330,7 +349,7 @@ class DependencyUi(object):
         for m, label in col_dict.iteritems():
             label.grid_forget()
             
-    def showDependencyCell(self, grid_row, row_module, grid_col, col_module, col_dict):
+    def showDependencyCell(self, grid_row, rowspan, row_module, grid_col, colspan, col_module, col_dict):
         if str(row_module) not in col_dict:
             forward_deps = self.resolver.numDependenciesTo(str(row_module),
                                                            str(col_module))
@@ -351,7 +370,9 @@ class DependencyUi(object):
         if str(row_module) in col_dict:
             entry_label = col_dict[str(row_module)]
             entry_label.grid(row=grid_row,
+                             rowspan=rowspan,
                              column=grid_col,
+                             columnspan=colspan,
                              sticky="NSEW")
         grid_row = grid_row + 1
         return grid_row
