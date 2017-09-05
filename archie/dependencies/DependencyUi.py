@@ -1,10 +1,11 @@
 from Tkinter import *
+from tkFileDialog import *
 import ttk, os
 
 from archie.projectmodel.plugins.OSProjectServices import OSProjectServices
 from archie.projectmodel.plugins.YAMLProjectLayout import YAMLProjectLayout
 from archie.dependencies.plugins.SimpleIncludeDependencyAnalyzer import SimpleIncludeDependencyAnalyzer
-from archie.dependencies.behaviours.FindIncludeDependencies import FindIncludeDependencies
+from archie.dependencies.behaviours.FindIncludeDependencies import ModuleCollection, FindIncludeDependencies
 
 class HeaderState(object):
     def __init__(self, modules, frame, matrix_labels, ui, layer = 0, horizontal=True):
@@ -25,7 +26,7 @@ class HeaderState(object):
             
     def _addModules(self, frame, matrix_labels, ui, layer, horizontal, item, modules):
         for module in modules:
-            if not isinstance(module, str):
+            if isinstance(module, ModuleCollection):
                 if module.is_loop:
                     item = self._addModules(frame,
                                             matrix_labels,
@@ -118,7 +119,7 @@ class HeaderState(object):
         if self.is_expanded:
             for i in range(0, len(modules)):
                 module = modules[i]
-                if not isinstance(module, str):
+                if isinstance(module, ModuleCollection):
                     if module.is_loop:
                         self.showColContents(col + i,
                                              module.module_list,
@@ -142,7 +143,7 @@ class HeaderState(object):
     def hideContents(self, modules):
         for i in range(len(modules)):
             module = modules[i]
-            if not isinstance(module, str):
+            if isinstance(module, ModuleCollection):
                 if module.is_loop:
                     self.hideContents(module.module_list)
                 else:
@@ -160,7 +161,7 @@ class HeaderState(object):
         if self.is_expanded:
             for i in range(0, len(modules)):
                 module = modules[i]
-                if not isinstance(module, str):
+                if isinstance(module, ModuleCollection):
                     if module.is_loop:
                         self.showRowContents(grid_col,
                                              colspan,
@@ -193,6 +194,14 @@ class DependencyUi(object):
     def __init__(self):
         self.root = Tk()
         self.root.title("Dependencies")
+        self.menubar = Menu(self.root)
+        self.filemenu = Menu(self.menubar, tearoff=0)
+        self.filemenu.add_command(label="Open", command=self.setRootFolder)
+        self.filemenu.add_separator()
+        self.filemenu.add_command(label="Exit", command=self.root.quit)
+        self.menubar.add_cascade(label="File", menu=self.filemenu)
+        self.root.config(menu=self.menubar)
+        
         self.mainframe = ttk.Frame(self.root, width=300, height=300)
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
@@ -235,8 +244,6 @@ class DependencyUi(object):
                                        window=self.deps_frame,
                                        anchor="nw",
                                        tags="self.deps_frame")
-        
-        self.calculateDependencies()
 
         self.mainframe.columnconfigure(0, weight=0)
         self.mainframe.columnconfigure(1, weight=1)
@@ -276,9 +283,14 @@ class DependencyUi(object):
     def _onDepsCanvasConfigure(self, event):
         self.deps_canvas.configure(scrollregion=self.deps_frame.bbox("all"))
 
-    def calculateDependencies(self):
+    def setRootFolder(self):
+        filename = askopenfilename(initialdir = ".",title = "Select file", filetypes = (("Archie Config","*.archie-config"),("all files","*.*")))
+        self.calculateDependencies(filename)
+        pass
+
+    def calculateDependencies(self, filename):
         layout = YAMLProjectLayout()
-        layout.loadConfig('examples/hangman/.archie-config')
+        layout.loadConfig(filename)
 
         services = OSProjectServices()
 
@@ -286,7 +298,7 @@ class DependencyUi(object):
         
         self.resolver = FindIncludeDependencies(layout, services, analyzer)
         
-        self.resolver.findIncludeDependencies('examples/librarymanagement')
+        self.resolver.findIncludeDependencies(os.path.dirname(filename))
         self.module_names = self.resolver.getModuleList()
         self.matrix_labels = dict()
         self._insertRows(self.module_names)
@@ -376,34 +388,6 @@ class DependencyUi(object):
                              sticky="NSEW")
         grid_row = grid_row + 1
         return grid_row
-
-    def _insertDependenciesCol(self, resolver, module_names, original_module_names, n1):
-        for m1 in module_names:
-            if isinstance(m1, str):
-                self._insertDependenciesRow(resolver, m1, original_module_names, n1, 1)
-                n1 = n1 + 1
-            else:
-                n1 = self._insertDependenciesCol(resolver, m1.module_list, original_module_names, n1)
-        return n1
-
-    def _insertDependenciesRow(self, resolver, m1, module_names, n1, n2):        
-        for m2 in module_names:
-            if isinstance(m2, str):
-                forward_deps = resolver.numDependenciesTo(str(m1), str(m2))
-                back_deps = resolver.numDependenciesTo(str(m2), str(m1))
-                
-                if forward_deps != 0 or back_deps != 0:
-                    if forward_deps == 0:
-                        bg_color = 'red'
-                    elif back_deps == 0:
-                        bg_color = 'green'
-                    else:
-                        bg_color = 'gray'
-                    ttk.Label(self.deps_frame, text='1', anchor=CENTER, background=bg_color).grid(row=n1, column=n2, sticky="NSEW")
-                n2 = n2 + 1
-            else:
-                n2 = self._insertDependenciesRow(resolver, m1, m2.module_list, n1, n2)
-        return n2
         
 def main():
     ui = DependencyUi()
