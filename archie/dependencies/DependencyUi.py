@@ -185,7 +185,7 @@ class HeaderState(object):
                 rowspan = int(info['rowspan'])
                 self.ui.showDependencyCell(grid_row, rowspan, module, grid_col, colspan, col_module, col_dict)                
         else:
-            info = self.buttons[col].grid_info()
+            info = self.buttons[row].grid_info()
             grid_row = int(info['row'])
             rowspan = int(info['rowspan'])
             self.ui.showDependencyCell(grid_row, rowspan, row_module, grid_col, colspan, col_module, col_dict)
