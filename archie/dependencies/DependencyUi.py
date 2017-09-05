@@ -368,6 +368,7 @@ class DependencyUi(object):
             back_deps = self.resolver.numDependenciesTo(str(col_module),
                                                         str(row_module))                
             if forward_deps != 0 or back_deps != 0:
+                text_value = str(max(back_deps, forward_deps))
                 if forward_deps == 0:
                     bg_color = 'red'
                 elif back_deps == 0:
@@ -376,7 +377,7 @@ class DependencyUi(object):
                     bg_color = 'gray'
 
                 col_dict[str(row_module)] = ttk.Label(self.deps_frame,
-                                                      text='1',
+                                                      text=text_value,
                                                       anchor=CENTER,
                                                       background=bg_color)
         if str(row_module) in col_dict:
