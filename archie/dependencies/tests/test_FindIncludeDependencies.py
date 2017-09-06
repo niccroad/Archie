@@ -2,7 +2,7 @@ import unittest
 
 from archie.projectmodel.entities.ProjectLayout import ProjectLayout
 from archie.projectmodel.entities.ProjectServices import ProjectServices
-from archie.dependencies.behaviours.FindIncludeDependencies import FindIncludeDependencies
+from archie.dependencies.behaviours.FindIncludeDependencies import FindIncludeDependencies, ModuleCollection
 from archie.dependencies.entities.IncludeDependencyAnalyzer import IncludeDependencyAnalyzer
 
 class StubProjectServices(ProjectServices):
@@ -93,7 +93,7 @@ class TestFindIncludeDependencies(unittest.TestCase):
         resolver = FindIncludeDependencies(layout, services, analyzer)
         
         resolver.findIncludeDependencies()
-        self.assertEquals(['Wordlist_p', 'HangmanGame', 'Main'], resolver.getModuleList())
+        self.assertEquals([['Wordlist_p', 'HangmanGame', 'Main']], resolver.getModuleList())
         self.assertEquals(1, resolver.numDependenciesTo('Main', 'HangmanGame'))
         self.assertEquals(0, resolver.numDependenciesTo('Main', 'Wordlist_p'))
         self.assertEquals(1, resolver.numDependenciesTo('HangmanGame', 'Wordlist_p'))
@@ -121,7 +121,7 @@ class TestFindIncludeDependencies(unittest.TestCase):
         resolver = FindIncludeDependencies(layout, services, analyzer)
         
         resolver.findIncludeDependencies()
-        self.assertEquals([['HangmanGame', 'Wordlist_p', 'Main']], resolver.getModuleList())
+        self.assertEquals(['(Source/Hangman:3)'], resolver.getModuleList())
         self.assertEquals(1, resolver.numDependenciesTo('Main', 'HangmanGame'))
         self.assertEquals(0, resolver.numDependenciesTo('Main', 'Wordlist_p'))
         self.assertEquals(1, resolver.numDependenciesTo('HangmanGame', 'Wordlist_p'))
@@ -151,7 +151,7 @@ class TestFindIncludeDependencies(unittest.TestCase):
         resolver = FindIncludeDependencies(layout, services, analyzer)
         
         resolver.findIncludeDependencies()
-        self.assertEquals(['Wordlist_p', 'HangmanGame', 'Main', ['Loop2', 'Loop3', 'Loop1']], resolver.getModuleList())
+        self.assertEquals([[['Loop1', 'Loop2', 'Loop3'], 'Wordlist_p', 'HangmanGame', 'Main']], resolver.getModuleList())
         self.assertEquals(1, resolver.numDependenciesTo('Main', 'HangmanGame'))
         self.assertEquals(0, resolver.numDependenciesTo('Main', 'Wordlist_p'))
         self.assertEquals(1, resolver.numDependenciesTo('HangmanGame', 'Wordlist_p'))

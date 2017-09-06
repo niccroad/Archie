@@ -15,7 +15,10 @@ class ModuleCollection(object):
         return self.name
 
     def __eq__(self, that):
-        return self.name.__eq__(str(that))
+        if isinstance(that, list):
+            return self.module_list.__eq__(that)
+        else:
+            return self.name.__eq__(str(that))
 
 class FindIncludeDependencies(object):
     def __init__(self, project_layout, project_services, dependency_analyzer):
