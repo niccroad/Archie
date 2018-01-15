@@ -88,10 +88,10 @@ class ProjectLayout(object):
         return False
 
     def addTierForModulesLike(self,
-    	                      pattern,
-    	                      tier,
-    	                      third_party_path = None,
-    	                      is_prescient = False):
+                              pattern,
+                              tier,
+                              third_party_path = None,
+                              is_prescient = False):
         if tier < 0:
             tier = 0
         while (len(self.tier_patterns) <= tier):
