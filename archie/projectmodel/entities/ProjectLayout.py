@@ -101,10 +101,14 @@ class ProjectLayout(object):
         self.tier_patterns[tier].append(tier_pattern)
 
     def _convertWildcardsToMatcher(self, pattern):
+        pattern_prefix = ''
         if pattern.startswith('**/'):
-            pattern = '(^|[\w\s/.]+)' + pattern[3:]
+            pattern = pattern[3:]
+            pattern_prefix = '[\w\s/.]*'
+        pattern_suffix = ''
         if pattern.endswith('/**'):
-            pattern = pattern[0:-3] + '([\w\s/.]+|$)'
+            pattern = pattern[:-3]
+            pattern_suffix = '[\w\s/.]*'
         replace_dict = {'.':'\.',
                         '/**/':'[\w\s/.]+',
                         '/**':'[\w\s/.]+',
@@ -116,20 +120,21 @@ class ProjectLayout(object):
         replace_pattern = re.compile('|'.join(replace_keys))
         pattern = (replace_pattern.sub(lambda x:replace_dict[x.group()],
                                        pattern))
-        if not pattern.endswith('$'):
-            pattern = pattern + '$'
-        matcher = re.compile(pattern)
+        matcher = re.compile(pattern_prefix + pattern + pattern_suffix + '$')
         return matcher
 
     def tierForModule(self, folder_name, default_tier = None):
+        max_t = None
         for t in range(len(self.tier_patterns)):
             patterns = self.tier_patterns[t]
             for pattern in patterns:
                 m = pattern.match(folder_name)
                 if m != None:
-                    return t
+                    max_t = t
+        if max_t != None:
+            return max_t
         if default_tier == None:
-        	default_tier = self.default_tier
+            default_tier = self.default_tier
         return default_tier
 
     def isThirdPartyModule(self, folder_name):
