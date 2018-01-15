@@ -101,16 +101,23 @@ class ProjectLayout(object):
         self.tier_patterns[tier].append(tier_pattern)
 
     def _convertWildcardsToMatcher(self, pattern):
+        if pattern.startswith('**/'):
+            pattern = '(^|[\w\s/.]+)' + pattern[3:]
+        if pattern.endswith('/**'):
+            pattern = pattern[0:-3] + '([\w\s/.]+|$)'
         replace_dict = {'.':'\.',
-                        '**/':'[\w\s/.]*',
-                        '**':'[\w\s/.]+',
+                        '/**/':'[\w\s/.]+',
+                        '/**':'[\w\s/.]+',
+                        '**/':'[\w\s/.]+',
+                        '**':'[\w\s/.]*',
                         '*':'[\w\s.]+'}
         replace_keys = replace_dict.keys()
         replace_keys = map(lambda x: re.escape(x), replace_keys)
         replace_pattern = re.compile('|'.join(replace_keys))
         pattern = (replace_pattern.sub(lambda x:replace_dict[x.group()],
-                                       pattern)
-                + '$')
+                                       pattern))
+        if not pattern.endswith('$'):
+            pattern = pattern + '$'
         matcher = re.compile(pattern)
         return matcher
 

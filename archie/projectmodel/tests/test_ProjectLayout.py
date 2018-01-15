@@ -63,7 +63,7 @@ class TestProjectLayout(unittest.TestCase):
     def test_dots_in_extensions_are_escaped(self):
     	project = ProjectLayout()
     	project.addHeaderPattern('*.i')
-    	self.assertFalse(project.isIncludeFile('Source/Module1/Fileai'))    	
+    	self.assertFalse(project.isIncludeFile('Source/Module1/Fileai'))
     	
     def test_a_dot_cpp_file_is_not_an_include_file(self):
     	project = ProjectLayout()
@@ -101,10 +101,28 @@ class TestProjectLayout(unittest.TestCase):
     	self.assertEqual(1, project.tierForModule('Source/Module1/repository/ISomeInterfacedoth'))
     	
     def test_a_double_star_can_match_an_empty_directory(self):
-    	project = ProjectLayout()
-    	project.addTierForModulesLike('**/afolder', 6)
-    	self.assertEqual(6, project.tierForModule('afolder'))
-    	
+        project = ProjectLayout()
+        project.addTierForModulesLike('**/afolder', 6)
+        self.assertEqual(6, project.tierForModule('afolder'))
+
+    def test_a_double_star_can_match_a_drive_name(self):
+        project = ProjectLayout()
+        project.addTierForModulesLike('**/afolder', 6)
+        self.assertEqual(6, project.tierForModule('C:/afolder'))
+
+    def test_a_double_star_at_the_end_can_match_no_folder(self):
+         project = ProjectLayout()
+         project.addTierForModulesLike('**/afolder/**', 6)
+         self.assertEqual(6, project.tierForModule('afolder'))
+
+    def test_a_double_star_in_the_middle_can_match_no_folder_but_a_separator(self):
+         project = ProjectLayout()
+         project.addTierForModulesLike('afolder/**/someotherfolder', 6)
+         self.assertEqual(6, project.tierForModule('afolder/someotherfolder'))
+         self.assertEqual(6, project.tierForModule('afolder/anextrafolder/someotherfolder'))
+         self.assertEqual(1, project.tierForModule('thewrongfolder/someotherfolder'))
+         self.assertEqual(1, project.tierForModule('afolder/alsothewrongfolder'))
+
     def test_the_default_tier_is_returned_when_no_configured_tier_is_known(self):
     	project = ProjectLayout()
     	project.setDefaultTier(3)
