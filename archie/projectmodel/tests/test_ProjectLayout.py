@@ -94,11 +94,11 @@ class TestProjectLayout(unittest.TestCase):
     	self.assertEqual(6, project.tierForModule('Source/Module1/repository/ISomeInterface.h'))
     	self.assertEqual(1, project.tierForModule('Source/Module1/repository/ISomeInterfacedoth'))
     	
-    def test_an_underscore_in_the_pattern_matches_any_character(self):
+    def test_an_underscore_in_the_pattern_matches_an_underscore(self):
     	project = ProjectLayout()
     	project.addTierForModulesLike('**/repository/I[A-Z]*_h', 6)
-    	self.assertEqual(6, project.tierForModule('Source/Module1/repository/ISomeInterface.h'))
-    	self.assertEqual(6, project.tierForModule('Source/Module1/repository/ISomeInterfacedoth'))
+    	self.assertEqual(6, project.tierForModule('Source/Module1/repository/ISomeInterface_h'))
+    	self.assertEqual(1, project.tierForModule('Source/Module1/repository/ISomeInterfacedoth'))
     	
     def test_a_double_star_can_match_an_empty_directory(self):
     	project = ProjectLayout()

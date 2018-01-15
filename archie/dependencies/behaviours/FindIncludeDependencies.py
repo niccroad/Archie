@@ -79,6 +79,7 @@ class FindIncludeDependencies(object):
         self.tree_module_list = self._topologicalSortModules(self.tree_module_list)
         self.flat_module_list = self._flattenModuleHierarchy(self.tree_module_list)
         self.flat_dependency_count = self._dependencyMatrix(self.flat_module_list)
+        self.transitive_dependency_count = self._transitiveDependencyMatrix(self.flat_module_list)
 
     # Khan's algorithm for topological sort of a DAG.
     def _topologicalSortModules(self, module_list):
@@ -197,6 +198,18 @@ class FindIncludeDependencies(object):
             dependency_count.append(dependency_row)
 
         return dependency_count
+
+    def _transitiveDependencyMatrix(self, module_list):
+        dist = self._distanceMatrix(module_list)
+
+        # Calculate the shortest distance between nodes
+        for k in range(len(module_list)):
+            for i in range(len(module_list)):
+                for j in range(len(module_list)):
+                    if dist[i][j] > dist[i][k] + dist[k][j]:
+                        dist[i][j] = dist[i][k] + dist[k][j]
+                        
+        return dist
     
     def _distanceMatrix(self, module_list):
         dist = self._dependencyMatrix(module_list)
@@ -245,5 +258,13 @@ class FindIncludeDependencies(object):
             index_from = self.flat_module_list.index(module_from)
             index_to = self.flat_module_list.index(module_to)
             return self.flat_dependency_count[index_from][index_to]
+        except ValueError:
+            return 0
+
+    def numTransitiveDependenciesTo(self, module_from, module_to):
+        try:
+            index_from = self.flat_module_list.index(module_from)
+            index_to = self.flat_module_list.index(module_to)
+            return self.transitive_dependency_count[index_from][index_to]
         except ValueError:
             return 0

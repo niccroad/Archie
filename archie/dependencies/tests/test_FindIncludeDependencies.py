@@ -98,6 +98,10 @@ class TestFindIncludeDependencies(unittest.TestCase):
         self.assertEquals(0, resolver.numDependenciesTo('Main', 'Wordlist_p'))
         self.assertEquals(1, resolver.numDependenciesTo('HangmanGame', 'Wordlist_p'))
         self.assertEquals(0, resolver.numDependenciesTo('HangmanGame', 'Main'))
+        self.assertEquals(1, resolver.numTransitiveDependenciesTo('Main', 'HangmanGame'))
+        self.assertEquals(2, resolver.numTransitiveDependenciesTo('Main', 'Wordlist_p'))
+        self.assertEquals(1, resolver.numTransitiveDependenciesTo('HangmanGame', 'Wordlist_p'))
+        self.assertEquals(0, resolver.numTransitiveDependenciesTo('HangmanGame', 'Main'))
 
     def test_handle_loops_in_include_dependencies(self):
         layout = ProjectLayout()
