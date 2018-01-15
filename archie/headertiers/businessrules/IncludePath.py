@@ -6,11 +6,11 @@ class IncludePath(object):
         self.project_services = project_services
 
     def resolveIncludePaths(self,
-    	                    folder_path,
-    	                    include_third_party = True,
-    	                    include_tiers = True):
+                            folder_path,
+                            include_third_party = True,
+                            include_tiers = True):
         logger = logging.getLogger('Archie')
-        logger.debug('List include folders for path %s', folder_path)       
+        logger.debug('List include folders for path %s', folder_path)
 
         tier = self.project_layout.tierForModule(folder_path)
         min_tier = self.project_layout.getMinimumReachableTier(tier)
@@ -21,7 +21,7 @@ class IncludePath(object):
             for t in range(min_tier, tier + 1):
                 third_party_paths = self.project_layout.getThirdPartyIncludeFolders(t)
                 for third_party_folder in third_party_paths:
-            	    logger.debug('Tier %d third party folder %s is included', t, third_party_folder)
+                    logger.debug('Tier %d third party folder %s is included', t, third_party_folder)
                 paths += third_party_paths
 
         if include_tiers:
@@ -31,16 +31,16 @@ class IncludePath(object):
                 if folder_tier == 0:
                     logger.debug('Private module %s is included', source_folder)
                     paths.append(source_folder)
-                    
+
             is_prescient = self.project_layout.isPrescientModule(folder_path)
             if is_prescient:
                 tier_folder = self.project_layout.getIncludeFolder(0)
                 logger.debug('Tier %d folder %s is included', t, tier_folder)
                 paths.append(tier_folder)
-                
+
             for t in range(min_tier, tier + 1):
                 tier_folder = self.project_layout.getIncludeFolder(t)
                 logger.debug('Tier %d folder %s is included', t, tier_folder)
                 paths.append(tier_folder)
-            
+
         return paths
