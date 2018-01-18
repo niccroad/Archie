@@ -14,6 +14,7 @@ class TierPattern(object):
         return folder_name.replace('\\', '/')
 
     def match(self, folder_name):
+        print("Checking for match of folder " + self._normalizePaths(folder_name))
         return self.matcher.match(self._normalizePaths(folder_name))
 
 class ProjectLayout(object):
@@ -120,6 +121,8 @@ class ProjectLayout(object):
         replace_pattern = re.compile('|'.join(replace_keys))
         pattern = (replace_pattern.sub(lambda x:replace_dict[x.group()],
                                        pattern))
+
+        print("Tier pattern is " + pattern_prefix + pattern + pattern_suffix + '$')
         matcher = re.compile(pattern_prefix + pattern + pattern_suffix + '$')
         return matcher
 
