@@ -93,6 +93,18 @@ class TestProjectLayout(unittest.TestCase):
     	project.addTierForModulesLike('**/repository/I[A-Z]*.h', 6)
     	self.assertEqual(6, project.tierForModule('Source/Module1/repository/ISomeInterface.h'))
     	self.assertEqual(1, project.tierForModule('Source/Module1/repository/ISomeInterfacedoth'))
+
+    def test_a_starstar_in_the_pattern_matches_a_dash(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('**/repository/*.h', 6)
+    	self.assertEqual(6, project.tierForModule('Source/Module-1/repository/ISomeInterface.h'))
+    	self.assertEqual(1, project.tierForModule('Source/Module-1/repository/ISomeInterfacedoth'))
+
+    def test_a_star_in_the_pattern_matches_a_dash(self):
+    	project = ProjectLayout()
+    	project.addTierForModulesLike('**/repository/*.h', 6)
+    	self.assertEqual(6, project.tierForModule('Source/Module1/repository/I-SomeInterface.h'))
+    	self.assertEqual(1, project.tierForModule('Source/Module1/repository/I-SomeInterfacedoth'))
     	
     def test_an_underscore_in_the_pattern_matches_an_underscore(self):
     	project = ProjectLayout()
@@ -132,6 +144,13 @@ class TestProjectLayout(unittest.TestCase):
     	project = ProjectLayout()
     	project.addTierForModulesLike('**/BusinessLogic', 2)
     	self.assertEqual(2, project.tierForModule('Source/Module1/BusinessLogic'))
+
+    def test_a_series_of_matching_tier_rules_are_applied_in_order(self):
+    	project = ProjectLayout()
+        project.addTierForModulesLike('**/Source/**', 1)
+    	project.addTierForModulesLike('**/BusinessLogic/**', 2)
+        project.addTierForModulesLike('**/Module1/**', 4)
+    	self.assertEqual(4, project.tierForModule('Source/Module1/BusinessLogic'))
     	
     def test_a_module_suffix_can_be_unmatched_matched_with_double_star_wildcards(self):
     	project = ProjectLayout()

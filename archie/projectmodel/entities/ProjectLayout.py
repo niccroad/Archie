@@ -1,11 +1,12 @@
 import re
 
 class TierPattern(object):
-    def __init__(self, matcher, third_party_path = None, is_prescient = False):
+    def __init__(self, matcher, third_party_path = None, is_prescient = False, priority = 0):
         self.is_third_party = (third_party_path != None)
         self.third_party_path = third_party_path
         self.is_prescient = is_prescient
         self.matcher = matcher
+        self.priority = priority
 
     def _normalizePaths(self, folder_name):
         indexOfColon = folder_name.find(':')
@@ -14,7 +15,6 @@ class TierPattern(object):
         return folder_name.replace('\\', '/')
 
     def match(self, folder_name):
-        print("Checking for match of folder " + self._normalizePaths(folder_name))
         return self.matcher.match(self._normalizePaths(folder_name))
 
 class ProjectLayout(object):
@@ -28,6 +28,7 @@ class ProjectLayout(object):
         self.header_matchers.append(re.compile('[\w\s]+\.hpp$'))
         self.default_tier = 1
         self.tier_step_limit = None
+        self.num_tier_patterns = 0
 
     def getSourceFolders(self):
         return self.source_paths
@@ -98,42 +99,44 @@ class ProjectLayout(object):
         while (len(self.tier_patterns) <= tier):
             self.tier_patterns.append([])
         matcher = self._convertWildcardsToMatcher(pattern)
-        tier_pattern = TierPattern(matcher, third_party_path, is_prescient)
+        self.num_tier_patterns = self.num_tier_patterns + 1
+        tier_pattern = TierPattern(matcher, third_party_path, is_prescient, self.num_tier_patterns)
         self.tier_patterns[tier].append(tier_pattern)
 
     def _convertWildcardsToMatcher(self, pattern):
         pattern_prefix = ''
         if pattern.startswith('**/'):
             pattern = pattern[3:]
-            pattern_prefix = '[\w\s/.]*'
+            pattern_prefix = '[\w\s/.-]*'
         pattern_suffix = ''
         if pattern.endswith('/**'):
             pattern = pattern[:-3]
-            pattern_suffix = '[\w\s/.]*'
+            pattern_suffix = '[\w\s/.-]*'
         replace_dict = {'.':'\.',
-                        '/**/':'[\w\s/.]+',
-                        '/**':'[\w\s/.]+',
-                        '**/':'[\w\s/.]+',
-                        '**':'[\w\s/.]*',
-                        '*':'[\w\s.]+'}
+                        '/**/':'[\w\s/.-]+',
+                        '/**':'[\w\s/.-]+',
+                        '**/':'[\w\s/.-]+',
+                        '**':'[\w\s/.-]*',
+                        '*':'[\w\s.-]+'}
         replace_keys = replace_dict.keys()
         replace_keys = map(lambda x: re.escape(x), replace_keys)
         replace_pattern = re.compile('|'.join(replace_keys))
         pattern = (replace_pattern.sub(lambda x:replace_dict[x.group()],
                                        pattern))
 
-        print("Tier pattern is " + pattern_prefix + pattern + pattern_suffix + '$')
         matcher = re.compile(pattern_prefix + pattern + pattern_suffix + '$')
         return matcher
 
     def tierForModule(self, folder_name, default_tier = None):
+        max_priority = 0
         max_t = None
         for t in range(len(self.tier_patterns)):
             patterns = self.tier_patterns[t]
             for pattern in patterns:
                 m = pattern.match(folder_name)
-                if m != None:
+                if m != None and pattern.priority >= max_priority:
                     max_t = t
+                    max_priority = pattern.priority
         if max_t != None:
             return max_t
         if default_tier == None:
