@@ -1,4 +1,4 @@
-import re
+import re, sys
 
 class TierPattern(object):
     def __init__(self, matcher, third_party_path = None, is_prescient = False, priority = 0):
@@ -128,15 +128,15 @@ class ProjectLayout(object):
         return matcher
 
     def tierForModule(self, folder_name, default_tier = None):
-        max_priority = 0
+        min_priority = sys.maxint
         max_t = None
         for t in range(len(self.tier_patterns)):
             patterns = self.tier_patterns[t]
             for pattern in patterns:
                 m = pattern.match(folder_name)
-                if m != None and pattern.priority >= max_priority:
+                if m != None and pattern.priority <= min_priority:
                     max_t = t
-                    max_priority = pattern.priority
+                    min_priority = pattern.priority
         if max_t != None:
             return max_t
         if default_tier == None:

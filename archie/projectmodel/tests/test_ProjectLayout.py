@@ -147,9 +147,9 @@ class TestProjectLayout(unittest.TestCase):
 
     def test_a_series_of_matching_tier_rules_are_applied_in_order(self):
     	project = ProjectLayout()
-        project.addTierForModulesLike('**/Source/**', 1)
-    	project.addTierForModulesLike('**/BusinessLogic/**', 2)
         project.addTierForModulesLike('**/Module1/**', 4)
+    	project.addTierForModulesLike('**/BusinessLogic/**', 2)
+        project.addTierForModulesLike('**/Source/**', 1)
     	self.assertEqual(4, project.tierForModule('Source/Module1/BusinessLogic'))
     	
     def test_a_module_suffix_can_be_unmatched_matched_with_double_star_wildcards(self):
