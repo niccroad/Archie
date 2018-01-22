@@ -65,7 +65,12 @@ class TestOSProjectServices(unittest.TestCase):
     def test_list_files_ending_in_slash(self):
         services = OSProjectServices()
         files = services.listFiles('archie/projectmodel/testdata/source/')
-        self.assertEquals(['File1.cpp', 'File1.h'], files)        
+        self.assertEquals(['File1.cpp', 'File1.h'], files)
+        
+    def test_list_files_on_a_missing_folder(self):
+        services = OSProjectServices()
+        files = services.listFiles('archie/projectmodel/missing/path')
+        self.assertEquals([], files)        
         
     def test_list_folders(self):
         services = OSProjectServices()
@@ -84,4 +89,9 @@ class TestOSProjectServices(unittest.TestCase):
                            'archie/projectmodel/testdata',
                            'archie/projectmodel/tests'],
                           folders)
+
+    def test_list_folders_at_a_missing_path(self):
+        services = OSProjectServices()
+        folders = services.listFolders('archie/projectmodel/missing/path')
+        self.assertEquals([], folders)
         

@@ -44,6 +44,9 @@ class OSProjectServices(ProjectServices):
         if folder.endswith('/'):
             folder = folder[:-1]
         files = []
+        if not os.path.isdir(folder):
+            return files
+
         for f in os.listdir(folder):
             full_path = folder + '/' + f
             if os.path.isfile(full_path):
@@ -54,6 +57,9 @@ class OSProjectServices(ProjectServices):
         if folder.endswith('/'):
             folder = folder[:-1]
         folders = []
+        if not os.path.isdir(folder):
+            return folders
+
         for f in os.listdir(folder):
             full_path = folder + '/' + f
             if not os.path.isfile(full_path):
